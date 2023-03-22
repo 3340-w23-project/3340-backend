@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 import json
 from flask import request, jsonify
 from flask_jwt_extended import create_access_token,get_jwt,get_jwt_identity, unset_jwt_cookies, jwt_required, JWTManager
-from backend import app
+from api import app
 
 
 @app.route('/ping')

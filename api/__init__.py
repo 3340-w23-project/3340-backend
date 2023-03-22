@@ -25,4 +25,4 @@ app.config["SQLALCHEMY_DATABASE_URI"] = data['database_uri']
 # initialize the app with the extension
 db.init_app(app)
 
-from backend import routes
+from api import routes

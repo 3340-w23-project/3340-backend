@@ -2,7 +2,7 @@ import os
 import json
 import sys
 
-from backend import app, db
+from api import app, db
 
 # getting config details
 with open('config.json') as f:
@@ -24,7 +24,7 @@ if __name__=='__main__':
         if sys.argv[1] == 'db-setup':
             print("setting up db ...")
             print("importing models ...")
-            from backend import models
+            from api import models
             print("creating tables...")
             with app.app_context():
                 db.create_all()
@@ -33,7 +33,7 @@ if __name__=='__main__':
         elif sys.argv[1] == 'prod':
             # run this command with the "prod" flag to run in prod
             print('<< PROD >>')
-            os.system(f"gunicorn -b '0.0.0.0:{data['port']}' backend:app")
+            os.system(f"gunicorn -b '0.0.0.0:{data['port']}' api:app")
         else:
             print(f"unknown option '{sys.argv[1]}', exiting")
             exit(1)
