@@ -14,7 +14,7 @@ if __name__=='__main__':
     # without an additional arg to run in debug
     if len(sys.argv) < 2:
         print('<< DEBUG >>')
-        app.run(debug=True)
+        app.run(debug=True, host="0.0.0.0")
 
     elif len(sys.argv) > 2:
         print("Too many arguments, exiting")
