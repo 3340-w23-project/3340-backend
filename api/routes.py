@@ -4,7 +4,7 @@ from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, unset_jwt_cookies, jwt_required
 import bcrypt
 from api import app, db
-from api.models import User
+from api.models import User, Post
 
 # use this to simply ping the server
 @app.route('/ping')
@@ -89,3 +89,87 @@ def my_profile():
 # CREDITS
 # our authentication was inspired by the following article:
 # https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7
+
+@app.route('/post/all')
+def posts():
+    posts = Post.query.all()
+    posts.reverse()
+    return jsonify([post.to_dict() for post in posts])
+
+@app.route('/post/new', methods=["POST"])
+@jwt_required()
+def newPost():
+
+    # get query params
+    title = request.json.get("title", None)
+    content = request.json.get("content", None)
+
+    # validate that params are sent in
+    if title is None or content is None:
+        return {"msg": "title or content missing"}, 400
+
+    # getting user
+    username = get_jwt_identity()
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return {"msg": "error fetching user from JWT token"}, 401
+
+    # creating and adding the new post
+    post = Post(title=title, content=content, author=user)
+    db.session.add(post)
+    db.session.commit()
+
+    return {"msg": "post created successfully"}, 200
+
+@app.route('/post/<post_id>/update', methods=["POST"])
+@jwt_required()
+def update_post(post_id):
+    post = Post.query.filter_by(id=post_id).first()
+    if not post:
+        return {"msg": "post not found"}, 404
+
+    username = get_jwt_identity()
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return {"msg": "error fetching user from JWT token"}, 401
+
+    if post.author != user:
+        return {"msg": "You do not have permission to modify this post"}, 401
+
+    # get query params
+    title = request.json.get("title", None)
+    content = request.json.get("content", None)
+
+    # validate that params are sent in
+    if title is None or content is None:
+        return {"msg": "title or content missing"}, 400
+
+    # updating values of post
+    post.title = title
+    post.content = content
+    db.session.commit()
+
+    return {"msg": "post updated successfully"}, 200
+
+@app.route('/post/<post_id>/delete', methods=["POST"])
+@jwt_required()
+def delete_post(post_id):
+    post = Post.query.filter_by(id=post_id).first()
+    if not post:
+        return {"msg": "post not found"}, 404
+
+    username = get_jwt_identity()
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return {"msg": "error fetching user from JWT token"}, 401
+
+    if post.author != user:
+        return {"msg": "You do not have permission to modify this post"}, 401
+
+    # deleting replies and post itself
+    for reply in post.replies:
+        db.session.delete(reply)
+    db.session.delete(post)
+    db.session.commit()
+
+    return {"msg": f"successfully deleted post {post_id}"}, 200

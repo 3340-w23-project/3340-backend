@@ -11,6 +11,12 @@ class User(db.Model):
     def __repr__(self):
         return f"User <{self.username}>"
 
+    def to_dict(self):
+        return {
+            'id':self.id,
+            'username':self.username,
+        }
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String, nullable=False)
@@ -21,6 +27,16 @@ class Post(db.Model):
 
     def __repr__(self):
         return f"Post <{self.title}> by <{self.user_id}> Posted at: {self.date}"
+    
+    def to_dict(self):
+        return {
+            'id':self.id,
+            'title':self.title,
+            'content':self.content,
+            'author':self.author.to_dict(),
+            'date':self.date.strftime("%Y-%m-%d %H:%M:%S"),
+            'replies':self.replies
+        }
 
 class Reply(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -32,3 +48,13 @@ class Reply(db.Model):
 
     def __repr__(self):
         return f"Reply <{self.title}> by <self.user_id> replied at: {self.date}"
+
+    def to_dict(self):
+        return {
+            'id':self.id,
+            'title':self.title,
+            'content':self.content,
+            'writer':self.writer.to_dict(),
+            'date':self.date.strftime("%Y-%m-%d %H:%M:%S"),
+            'post_id':self.post_id,
+        }
