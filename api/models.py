@@ -13,8 +13,35 @@ class User(db.Model):
 
     def to_dict(self):
         return {
-            'id':self.id,
-            'username':self.username,
+            'id': self.id,
+            'username': self.username,
+        }
+
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    channels = db.relationship('Channel', backref='category', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name
+        }
+
+class Channel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    posts = db.relationship('Post', backref='channel', lazy=True)
+
+    def __repr__(self):
+        return f"Channel <{self.name}>"
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'posts': [post.to_dict() for post in self.posts]
         }
 
 class Post(db.Model):
@@ -23,19 +50,20 @@ class Post(db.Model):
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     content = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    channel_id = db.Column(db.Integer, db.ForeignKey('channel.id'), nullable=False)
     replies = db.relationship('Reply', backref='original', lazy=True)
 
     def __repr__(self):
         return f"Post <{self.title}> by <{self.user_id}> Posted at: {self.date}"
-    
+
     def to_dict(self):
         return {
-            'id':self.id,
-            'title':self.title,
-            'content':self.content,
-            'author':self.author.to_dict(),
-            'date':self.date.strftime("%Y-%m-%d %H:%M:%S"),
-            'replies':self.replies
+            'id': self.id,
+            'title': self.title,
+            'content': self.content,
+            'author': self.author.to_dict(),
+            'date': self.date.strftime("%Y-%m-%d %H:%M:%S"),
+            'replies': [reply.to_dict() for reply in self.replies]
         }
 
 class Reply(db.Model):
@@ -51,10 +79,10 @@ class Reply(db.Model):
 
     def to_dict(self):
         return {
-            'id':self.id,
-            'title':self.title,
-            'content':self.content,
-            'writer':self.writer.to_dict(),
-            'date':self.date.strftime("%Y-%m-%d %H:%M:%S"),
-            'post_id':self.post_id,
+            'id': self.id,
+            'title': self.title,
+            'content': self.content,
+            'writer': self.writer.to_dict(),
+            'date': self.date.strftime("%Y-%m-%d %H:%M:%S"),
+            'post_id': self.post_id,
         }

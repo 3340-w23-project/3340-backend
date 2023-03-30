@@ -4,7 +4,7 @@ from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, unset_jwt_cookies, jwt_required
 import bcrypt
 from api import app, db
-from api.models import User, Post
+from api.models import User, Post, Channel, Category
 
 # use this to simply ping the server
 @app.route('/ping')
@@ -96,17 +96,31 @@ def posts():
     posts.reverse()
     return jsonify([post.to_dict() for post in posts])
 
+@app.route('/channel/<int:channel_id>/posts')
+def get_posts_in_channel(channel_id):
+    # Get the channel object
+    channel = Channel.query.get(channel_id)
+
+    # Check if the channel exists
+    if not channel:
+        return {"msg": "channel not found"}, 404
+
+    # Get all posts in the channel and convert them to dictionaries
+    posts = [post.to_dict() for post in channel.posts]
+
+    return {'channel_name': channel.name, 'posts': posts}, 200
+
 @app.route('/post/new', methods=["POST"])
 @jwt_required()
-def newPost():
-
+def new_post():
     # get query params
     title = request.json.get("title", None)
     content = request.json.get("content", None)
+    channel_id = request.json.get("channel_id", None)
 
     # validate that params are sent in
-    if title is None or content is None:
-        return {"msg": "title or content missing"}, 400
+    if title is None or content is None or channel_id is None:
+        return {"msg": "title, content, or channel_id missing"}, 400
 
     # getting user
     username = get_jwt_identity()
@@ -114,8 +128,13 @@ def newPost():
     if not user:
         return {"msg": "error fetching user from JWT token"}, 401
 
-    # creating and adding the new post
-    post = Post(title=title, content=content, author=user)
+    # checking if the channel exists
+    channel = Channel.query.filter_by(id=channel_id).first()
+    if not channel:
+        return {"msg": "channel not found"}, 404
+
+    # creating and adding the new post to the specified channel
+    post = Post(title=title, content=content, author=user, channel=channel)
     db.session.add(post)
     db.session.commit()
 
@@ -173,3 +192,12 @@ def delete_post(post_id):
     db.session.commit()
 
     return {"msg": f"successfully deleted post {post_id}"}, 200
+
+@app.route('/categories')
+def get_categories():
+    categories = Category.query.all()
+    response = []
+    for category in categories:
+        channels_list = [{'id': channel.id, 'name': channel.name} for channel in category.channels]
+        response.append({'id': category.id, 'name': category.name, 'channels': channels_list})
+    return {'categories': response}, 200
