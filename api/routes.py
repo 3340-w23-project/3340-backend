@@ -185,6 +185,70 @@ def create_reply(post_id):
 
     return {"msg": "reply created successfully"}, 201
 
+@app.route('/reply/<int:reply_id>/update', methods=['POST'])
+@jwt_required()
+def update_reply(reply_id):
+    # getting user
+    username = get_jwt_identity()
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return {"msg": "error fetching user from JWT token"}, 401
+
+    # checking if the reply exists
+    reply = Reply.query.filter_by(id=reply_id).first()
+    if not reply:
+        return {"msg": "reply not found"}, 404
+
+    # checking if the user is authorized to update the reply
+    if reply.user_id != user.id:
+        return {"msg": "unauthorized to update this reply"}, 403
+
+    # get query params
+    content = request.json.get("content", None)
+
+    # validate that params are sent in
+    if content is None:
+        return {"msg": "content missing"}, 400
+
+    # update the reply object
+    reply.content = content
+    db.session.commit()
+
+    return {"msg": "reply updated successfully"}, 200
+
+
+@app.route('/reply/<int:reply_id>/delete', methods=['POST'])
+@jwt_required()
+def delete_reply(reply_id):
+    # getting user
+    username = get_jwt_identity()
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return {"msg": "error fetching user from JWT token"}, 401
+
+    # checking if the reply exists
+    reply = Reply.query.filter_by(id=reply_id).first()
+    if not reply:
+        return {"msg": "reply not found"}, 404
+
+    # checking if the user is authorized to delete the reply
+    if reply.user_id != user.id:
+        return {"msg": "unauthorized to delete this reply"}, 403
+
+    # recursively delete all child replies
+    def delete_children(reply):
+        for child in reply.replies:
+            delete_children(child)
+            db.session.delete(child)
+
+    delete_children(reply)
+
+    # delete the reply object
+    db.session.delete(reply)
+    db.session.commit()
+
+    return {"msg": "reply and all its children deleted successfully"}, 200
+
 @app.route('/post/<post_id>/update', methods=["POST"])
 @jwt_required()
 def update_post(post_id):
