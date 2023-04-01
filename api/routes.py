@@ -5,7 +5,6 @@ from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, u
 import bcrypt
 from api import app, db
 from api.models import User, Post, Channel, Category, Reply
-from sqlalchemy import func
 
 # use this to simply ping the server
 @app.route('/ping')

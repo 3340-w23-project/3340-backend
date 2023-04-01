@@ -1,6 +1,5 @@
 # Project specific
 config.json
-site.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -66,7 +65,6 @@ db.sqlite3
 db.sqlite3-journal
 
 # Flask stuff:
-instance/
 .webassets-cache
 
 # Scrapy stuff:
