@@ -4,7 +4,8 @@ from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, unset_jwt_cookies, jwt_required
 import bcrypt
 from api import app, db
-from api.models import User, Post, Channel, Category
+from api.models import User, Post, Channel, Category, Reply
+from sqlalchemy import func
 
 # use this to simply ping the server
 @app.route('/ping')
@@ -139,6 +140,50 @@ def new_post():
     db.session.commit()
 
     return {"msg": "post created successfully"}, 200
+
+@app.route('/post/<int:post_id>/reply', methods=['POST'])
+@jwt_required()
+def create_reply(post_id):
+    # get query params
+    content = request.json.get("content", None)
+    parent_reply_id = request.json.get("parent_reply_id", None)
+
+    # validate that params are sent in
+    if content is None:
+        return {"msg": "content missing"}, 400
+
+    # getting user
+    username = get_jwt_identity()
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return {"msg": "error fetching user from JWT token"}, 401
+
+    # checking if the post exists
+    post = Post.query.filter_by(id=post_id).first()
+    if not post:
+        return {"msg": "post not found"}, 404
+
+    # Declare parent_reply outside of the conditional block
+    parent_reply = None
+
+    # Determine if this is a reply to a post or to another reply
+    if parent_reply_id:
+        parent_reply = Reply.query.filter_by(id=parent_reply_id).first()
+        if not parent_reply:
+            return {"msg": "parent reply not found"}, 404
+        depth = parent_reply.depth + 1
+    else:
+        depth = 0
+
+    if depth > 5:
+        return {"msg": "maximum nesting level exceeded"}, 400
+
+    # create new reply object
+    reply = Reply(content=content, user_id=user.id, post=post, parent_reply=parent_reply, depth=depth)
+    db.session.add(reply)
+    db.session.commit()
+
+    return {"msg": "reply created successfully"}, 201
 
 @app.route('/post/<post_id>/update', methods=["POST"])
 @jwt_required()
