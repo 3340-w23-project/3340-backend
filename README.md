@@ -15,10 +15,18 @@ Backend of the COMP-3340 final project "UHelp" - written in Flask.
 pip3 install -r requirements.txt
 ```
 
-2. Copy the example config (and modify it how you like)
+2. Set up the environment variables:
+   - `SECRET_KEY`: This should be a long and random string used for cryptographic purposes
+   - `JWT_SECRET_KEY`: Another long and random string used for JWT token encryption
+   - `PORT`: The port on which the application will run (e.g. 5000)
+   - `DATABASE_URI`: The URI of your SQLite database
 
-```sh
-cp example-config.json config.json
+Example .env file:
+```
+SECRET_KEY="your_secret_key_here"
+JWT_SECRET_KEY="your_jwt_secret_key_here"
+PORT=your_port_number_here
+DATABASE_URI="your_database_uri_here"
 ```
 
 3. Run the database setup script
