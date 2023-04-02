@@ -1,20 +1,18 @@
-import json
+from dotenv import load_dotenv
+load_dotenv()
+import os
 from datetime import timedelta
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
-# getting config details
-with open('config.json') as f:
-    data = json.load(f)
-
 # initializing Flask
 app = Flask(__name__)
-app.config['SECRET_KEY'] = data['secret_key']
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 # jwt config
-app.config["JWT_SECRET_KEY"] = data['jwt_secret_key']
+app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY')
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 jwt = JWTManager(app)
 
@@ -22,7 +20,7 @@ jwt = JWTManager(app)
 db = SQLAlchemy()
 
 # configure the SQLite database, relative to the app instance folder
-app.config["SQLALCHEMY_DATABASE_URI"] = data['database_uri']
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv('DATABASE_URI')
 # initialize the app with the extension
 db.init_app(app)
 

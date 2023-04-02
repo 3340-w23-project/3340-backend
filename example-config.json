@@ -1,6 +1,0 @@
-{
-    "secret_key":"Your secret key would go here",
-    "jwt_secret_key":"Your jwt secret key would go here",
-    "port":"5000",
-    "database_uri":"sqlite:///site.db"
-}

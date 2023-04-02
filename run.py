@@ -1,14 +1,9 @@
 import os
-import json
 import sys
-
+from dotenv import load_dotenv
+load_dotenv()
 from api import app, db
 from api.models import Category, Channel
-
-# getting config details
-with open('config.json') as f:
-    data = json.load(f)
-
 
 # running site
 if __name__=='__main__':
@@ -54,7 +49,7 @@ if __name__=='__main__':
         elif sys.argv[1] == 'prod':
             # run this command with the "prod" flag to run in prod
             print('<< PROD >>')
-            os.system(f"gunicorn -b '0.0.0.0:{data['port']}' api:app")
+            os.system(f"gunicorn -b '0.0.0.0:{os.getenv('PORT')}' api:app")
         else:
             print(f"unknown option '{sys.argv[1]}', exiting")
             exit(1)
