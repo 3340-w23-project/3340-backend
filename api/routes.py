@@ -5,6 +5,8 @@ from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, u
 import bcrypt
 from api import app, db
 from api.models import User, Post, Channel, Category, Reply
+from better_profanity import profanity
+profanity.load_censor_words()
 
 # use this to simply ping the server
 @app.route('/ping')
@@ -17,6 +19,9 @@ def signup():
     # get query params
     username = request.json.get("username", None)
     password = request.json.get("password", None)
+
+    if(profanity.contains_profanity(username)):
+        return {"msg": "username contains profanity"}, 400
     
     # validate that params are sent in
     if username is None or password is None:
@@ -114,8 +119,8 @@ def get_posts_in_channel(channel_id):
 @jwt_required()
 def new_post():
     # get query params
-    title = request.json.get("title", None)
-    content = request.json.get("content", None)
+    title = profanity.censor(request.json.get("title", None))
+    content = profanity.censor(request.json.get("content", None))
     channel_id = request.json.get("channel_id", None)
 
     # validate that params are sent in
@@ -144,8 +149,8 @@ def new_post():
 @jwt_required()
 def create_reply(post_id):
     # get query params
-    content = request.json.get("content", None)
-    parent_reply_id = request.json.get("parent_reply_id", None)
+    content = profanity.censor(request.json.get("content", None))
+    parent_reply_id = profanity.censor(request.json.get("parent_reply_id", None))
 
     # validate that params are sent in
     if content is None:
@@ -203,7 +208,7 @@ def update_reply(reply_id):
         return {"msg": "unauthorized to update this reply"}, 403
 
     # get query params
-    content = request.json.get("content", None)
+    content = profanity.censor(request.json.get("content", None))
 
     # validate that params are sent in
     if content is None:
@@ -264,8 +269,8 @@ def update_post(post_id):
         return {"msg": "You do not have permission to modify this post"}, 401
 
     # get query params
-    title = request.json.get("title", None)
-    content = request.json.get("content", None)
+    title = profanity.censor(request.json.get("title", None))
+    content = profanity.censor(request.json.get("content", None))
 
     # validate that params are sent in
     if title is None or content is None:
