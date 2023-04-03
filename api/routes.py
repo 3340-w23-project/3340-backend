@@ -150,7 +150,7 @@ def new_post():
 def create_reply(post_id):
     # get query params
     content = profanity.censor(request.json.get("content", None))
-    parent_reply_id = profanity.censor(request.json.get("parent_reply_id", None))
+    parent_reply_id = request.json.get("parent_reply_id", None)
 
     # validate that params are sent in
     if content is None:
