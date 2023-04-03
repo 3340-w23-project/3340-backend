@@ -36,19 +36,7 @@ def create_db():
 # running site
 if __name__=='__main__':
     # without an additional arg to run in debug
-    if len(sys.argv) <= 2:
-        print('<< DEBUG >>')
-        if not os.path.exists('instance/site.db') or (len(sys.argv) == 2 and sys.argv[1] == 'reset'):
-            create_db()
-        else:
-            print("database already exists, skipping")
-        app.run(debug=True, host="0.0.0.0")
-
-    elif len(sys.argv) > 3:
-        print("Too many arguments, exiting")
-        exit(1)
-
-    else:
+    if len(sys.argv) <= 3:
         if sys.argv[1] == 'prod':
             # run this command with the "prod" flag to run in prod
             if not os.path.exists('instance/site.db') or (len(sys.argv) == 3 and sys.argv[2] == 'reset'):
@@ -58,6 +46,18 @@ if __name__=='__main__':
 
             print('<< PROD >>')
             os.system(f"gunicorn -b '0.0.0.0:{os.getenv('PORT')}' api:app")
+
+        elif sys.argv[1] == 'dev':
+            if not os.path.exists('instance/site.db') or (len(sys.argv) == 3 and sys.argv[2] == 'reset'):
+                create_db()
+            else:
+                print("database already exists, skipping")
+
+            print('<< DEBUG >>')
+            app.run(debug=True, host="0.0.0.0")
         else:
             print(f"unknown option '{sys.argv[1]}', exiting")
             exit(1)
+    else:
+        print("Too many arguments, exiting")
+        exit(1)
