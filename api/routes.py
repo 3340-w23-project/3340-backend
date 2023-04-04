@@ -26,19 +26,28 @@ def signup():
     # validate that params are sent in
     if username is None or password is None:
         return {"msg": "username or password missing"}, 400
+    
+    if len(username) < 3:
+        return {"msg": "username must be at least 3 characters long"}, 400
+    
+    if len(username) > 20:
+        return {"msg": "username must be at most 20 characters long"}, 400
 
-    # check if user already exists
-    queried_user = User.query.filter_by(username=username).first()
+    # convert username to lowercase
+    lc_username = username.lower()
+
+    # check if user already exists (case insensitive)
+    queried_user = User.query.filter(User.username.ilike(lc_username)).first()
     if queried_user:
         return {"msg": f"user <{username}> already exists"}, 409
 
     # creating a new user and adding it to the users table
-    user = User(username=username, password_hash=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
+    user = User(username=lc_username, display_name=username, password_hash=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
     db.session.add(user)
     db.session.commit()
     return {"msg": f"user <{username}> created successfully"}, 201
 
-@app.route('/login', methods=["POST"])
+@app.route('/signin', methods=["POST"])
 def login():
     # get query params
     username = request.json.get("username", None)
@@ -47,9 +56,15 @@ def login():
     # validate that params are sent in
     if username is None or password is None:
         return {"msg": "username or password missing"}, 400
+    
+    if len(username) < 3 or len(username) > 20:
+        return {"msg": "invalid username"}, 400
 
-    # get user by username
-    user = User.query.filter_by(username=username).first()
+    # convert username to lowercase
+    lc_username = username.lower()
+
+    # get user by username (case insensitive)
+    user = User.query.filter(User.username.ilike(lc_username)).first()
 
     # if user doesn't exist or the password is incorrect, we return unauthorized
     if not user:
@@ -58,7 +73,7 @@ def login():
         return {"msg":"incorrect username or password"}, 401
 
     # creating jwt token and returning it
-    access_token = create_access_token(identity=username)
+    access_token = create_access_token(identity=lc_username)
     return {"access_token":access_token}, 200
 
 @app.route("/logout", methods=["POST"])
@@ -89,7 +104,7 @@ def refresh_expiring_jwts(response):
 @app.route('/identity')
 @jwt_required()
 def my_profile():
-    return {"identity": get_jwt_identity()}, 200
+    return {"username": get_jwt_identity(), "display_name": User.query.filter(User.username.ilike(get_jwt_identity())).first().display_name}, 200
 
 # CREDITS
 # our authentication was inspired by the following article:
