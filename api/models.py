@@ -52,19 +52,24 @@ class Post(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     channel_id = db.Column(db.Integer, db.ForeignKey('channel.id'), nullable=False)
     replies = db.relationship('Reply', backref='post', lazy=True)
+    edited = db.Column(db.Boolean, nullable=False, default=False)
 
     def __repr__(self):
         return f"Post <{self.title}> by <{self.user_id}> Posted at: {self.date}"
 
     def to_dict(self):
-        return {
+        result = {
             'id': self.id,
             'title': self.title,
             'content': self.content,
             'author': self.author.to_dict(),
             'date': self.date.strftime("%Y-%m-%d %H:%M:%S"),
-            'replies': [reply.to_dict() for reply in self.replies if not reply.parent_reply_id],
         }
+        if self.replies:
+            result['replies'] = [reply.to_dict() for reply in self.replies if not reply.parent_reply_id]
+        if self.edited:
+            result['edited'] = True
+        return result
 
 class Reply(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -75,17 +80,23 @@ class Reply(db.Model):
     parent_reply_id = db.Column(db.Integer, db.ForeignKey('reply.id'))
     depth = db.Column(db.Integer, nullable=False)
     replies = db.relationship('Reply', backref=db.backref('parent_reply', remote_side=[id]), lazy='joined')
+    edited = db.Column(db.Boolean, nullable=False, default=False)
 
     def __repr__(self):
         return f"Reply <{self.content}> by <{self.user_id}> to <{self.post_id}> Posted at: {self.date}"
 
     def to_dict(self):
-        return {
+        result = {
             'id': self.id,
             'content': self.content,
             'author': self.author.to_dict(),
             'date': self.date.strftime("%Y-%m-%d %H:%M:%S"),
-            'parent_reply_id': self.parent_reply_id,
             'depth': self.depth,
-            'replies': [reply.to_dict() for reply in self.replies]
         }
+        if self.parent_reply_id:
+            result['parent_reply'] = self.parent_reply_id
+        if self.replies:
+            result['replies'] = [reply.to_dict() for reply in self.replies]
+        if self.edited:
+            result['edited'] = True
+        return result

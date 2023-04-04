@@ -14,6 +14,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 # jwt config
 app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY')
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+app.config["JSON_SORT_KEYS"] = False
 jwt = JWTManager(app)
 
 # create the extension

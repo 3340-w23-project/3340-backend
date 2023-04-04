@@ -216,6 +216,7 @@ def update_reply(reply_id):
 
     # update the reply object
     reply.content = content
+    reply.edited = True
     db.session.commit()
 
     return {"msg": "reply updated successfully"}, 200
@@ -279,6 +280,7 @@ def update_post(post_id):
     # updating values of post
     post.title = title
     post.content = content
+    post.edited = True
     db.session.commit()
 
     return {"msg": "post updated successfully"}, 200
