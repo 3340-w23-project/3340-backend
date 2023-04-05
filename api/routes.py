@@ -4,7 +4,7 @@ from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, unset_jwt_cookies, jwt_required
 import bcrypt
 from api import app, db
-from api.models import User, Post, Channel, Category, Reply
+from api.models import User, Post, Channel, Category, Reply, Like
 from better_profanity import profanity
 profanity.load_censor_words()
 
@@ -110,13 +110,25 @@ def my_profile():
 # our authentication was inspired by the following article:
 # https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7
 
+@app.route('/categories')
+def get_categories():
+    categories = Category.query.all()
+    response = []
+    for category in categories:
+        channels_list = [{'id': channel.id, 'name': channel.name} for channel in category.channels]
+        response.append({'id': category.id, 'name': category.name, 'channels': channels_list})
+    return {'categories': response}, 200
+
 @app.route('/post/all')
+@jwt_required()
 def posts():
     posts = Post.query.all()
     posts.reverse()
-    return jsonify([post.to_dict() for post in posts])
+    username = get_jwt_identity()
+    return jsonify([post.to_dict(username=username) for post in posts])
 
 @app.route('/channel/<int:channel_id>/posts')
+@jwt_required()
 def get_posts_in_channel(channel_id):
     # Get the channel object
     channel = Channel.query.get(channel_id)
@@ -125,8 +137,9 @@ def get_posts_in_channel(channel_id):
     if not channel:
         return {"msg": "channel not found"}, 404
 
+    username = get_jwt_identity()
     # Get all posts in the channel and convert them to dictionaries
-    posts = [post.to_dict() for post in channel.posts]
+    posts = [post.to_dict(username=username) for post in channel.posts]
 
     return {'channel_name': channel.name, 'posts': posts}, 200
 
@@ -323,11 +336,38 @@ def delete_post(post_id):
 
     return {"msg": f"successfully deleted post {post_id}"}, 200
 
-@app.route('/categories')
-def get_categories():
-    categories = Category.query.all()
-    response = []
-    for category in categories:
-        channels_list = [{'id': channel.id, 'name': channel.name} for channel in category.channels]
-        response.append({'id': category.id, 'name': category.name, 'channels': channels_list})
-    return {'categories': response}, 200
+@app.route('/post/<int:post_id>/like', methods=['POST'])
+@jwt_required()
+def like_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    current_user_username = get_jwt_identity()
+    like = Like.query.filter_by(username=current_user_username, post_id=post_id).first()
+    if like:
+        # User has already liked this post, so delete the like
+        db.session.delete(like)
+        db.session.commit()
+        return jsonify({'message': 'Like removed.'}), 200
+    else:
+        # User has not yet liked this post, so add a new like
+        new_like = Like(username=current_user_username, post_id=post_id)
+        db.session.add(new_like)
+        db.session.commit()
+        return jsonify({'message': 'Post liked.'}), 201
+
+@app.route('/reply/<int:reply_id>/like', methods=['POST'])
+@jwt_required()
+def like_reply(reply_id):
+    reply = Reply.query.get_or_404(reply_id)
+    current_user_username = get_jwt_identity()
+    like = Like.query.filter_by(username=current_user_username, reply_id=reply_id).first()
+    if like:
+        # User has already liked this reply, so delete the like
+        db.session.delete(like)
+        db.session.commit()
+        return jsonify({'message': 'Like removed.'}), 200
+    else:
+        # User has not yet liked this reply, so add a new like
+        new_like = Like(username=current_user_username, reply_id=reply_id)
+        db.session.add(new_like)
+        db.session.commit()
+        return jsonify({'message': 'Reply liked.'}), 201
