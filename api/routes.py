@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import json
+import os
 from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, unset_jwt_cookies, jwt_required
 import bcrypt
@@ -13,6 +14,8 @@ profanity.load_censor_words()
 @app.route('/')
 def ping():
     return {"msg":"pong"}, 200
+
+allowed_usernames = os.environ.get("ALLOWED_USERNAMES", "").split(",")
 
 @app.route('/signup', methods=["POST"])
 def signup():
@@ -40,6 +43,10 @@ def signup():
     queried_user = User.query.filter(User.username.ilike(lc_username)).first()
     if queried_user:
         return {"msg": f"user <{username}> already exists"}, 409
+
+    # check if username is allowed
+    if lc_username not in allowed_usernames:
+        return {"msg": f"user <{lc_username}> not allowed to sign up"}, 403
 
     # creating a new user and adding it to the users table
     user = User(username=lc_username, display_name=username, password_hash=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
