@@ -16,6 +16,7 @@ def ping():
     return {"msg":"pong"}, 200
 
 allowed_usernames = os.environ.get("ALLOWED_USERNAMES", "").split(",")
+restricted_mode = os.environ.get("RESTRICTED_MODE", "false").lower() == "true"
 
 @app.route('/signup', methods=["POST"])
 def signup():
@@ -44,9 +45,10 @@ def signup():
     if queried_user:
         return {"msg": f"user <{username}> already exists"}, 409
 
-    # check if username is allowed
-    if lc_username not in allowed_usernames:
-        return {"msg": f"user <{lc_username}> not allowed to sign up"}, 403
+    if restricted_mode:
+        # check if username is allowed
+        if lc_username not in allowed_usernames:
+            return {"msg": f"user <{lc_username}> not allowed to sign up"}, 403
 
     # creating a new user and adding it to the users table
     user = User(username=lc_username, display_name=username, password_hash=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
