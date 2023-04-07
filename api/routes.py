@@ -76,9 +76,7 @@ def login():
     user = User.query.filter(User.username.ilike(lc_username)).first()
 
     # if user doesn't exist or the password is incorrect, we return unauthorized
-    if not user:
-        return {"msg":"incorrect username or password"}, 401
-    if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash):
+    if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         return {"msg":"incorrect username or password"}, 401
 
     # creating jwt token and returning it

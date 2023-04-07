@@ -1,11 +1,14 @@
 from dotenv import load_dotenv
-load_dotenv()
 import os
 from datetime import timedelta
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+import pymysql
+
+load_dotenv()
+pymysql.install_as_MySQLdb()
 
 # initializing Flask
 app = Flask(__name__)
