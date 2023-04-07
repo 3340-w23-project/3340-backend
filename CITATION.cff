@@ -1,0 +1,22 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: UHelp API
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Borhan
+    family-names: Saflo
+  - given-names: Jeremie
+    family-names: Bornais
+  - given-names: Justin
+    family-names: Bornais
+  - given-names: Cameron
+    family-names: Vandermeersch
+repository-code: 'https://github.com/uhelp-dev/uhelp-backend'
+license: MIT
+version: '1.0'
+date-released: '2023-04-05'
