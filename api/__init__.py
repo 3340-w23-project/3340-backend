@@ -4,7 +4,6 @@ from datetime import timedelta
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
 import pymysql
 
 load_dotenv()
@@ -25,11 +24,17 @@ db = SQLAlchemy()
 
 # configure the SQLite database, relative to the app instance folder
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv('DATABASE_URI')
+
+# ssl config
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "connect_args": {
+        "ssl": {
+            "ca": os.getenv('CA_CERT'),
+        }
+    }
+}
+
 # initialize the app with the extension
 db.init_app(app)
-
-# allowing all origins and methods
-# this is pretty insecure - don't ever use this in production code
-CORS(app, supports_credentials=True)
 
 from api import routes

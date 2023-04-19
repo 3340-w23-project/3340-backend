@@ -6,8 +6,8 @@ class User(db.Model):
     username = db.Column(db.String(20), nullable=False, unique=True)
     display_name = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    posts = db.relationship('Post', backref='author', lazy=True)
-    replies = db.relationship('Reply', backref='author', lazy='joined')
+    posts = db.relationship('Post', backref='author', lazy=True, primaryjoin="Post.user_id==User.id", foreign_keys="Post.user_id")
+    replies = db.relationship('Reply', backref='author', lazy='joined', primaryjoin="Reply.user_id==User.id", foreign_keys="Reply.user_id")
 
     def __repr__(self):
         return f"User <{self.username}>"
@@ -22,7 +22,7 @@ class User(db.Model):
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
-    channels = db.relationship('Channel', backref='category', lazy=True)
+    channels = db.relationship('Channel', backref='category', lazy=True, primaryjoin="Channel.category_id==Category.id", foreign_keys="Channel.category_id")
 
     def to_dict(self):
         return {
@@ -33,8 +33,8 @@ class Category(db.Model):
 class Channel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
-    posts = db.relationship('Post', backref='channel', lazy=True)
+    category_id = db.Column(db.Integer, nullable=False)
+    posts = db.relationship('Post', backref='channel', lazy=True, primaryjoin="Post.channel_id==Channel.id", foreign_keys="Post.channel_id")
 
     def __repr__(self):
         return f"Channel <{self.name}>"
@@ -49,8 +49,8 @@ class Channel(db.Model):
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), nullable=False)
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'))
-    reply_id = db.Column(db.Integer, db.ForeignKey('reply.id'))
+    post_id = db.Column(db.Integer)
+    reply_id = db.Column(db.Integer)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     def __repr__(self):
@@ -61,11 +61,11 @@ class Post(db.Model):
     title = db.Column(db.String(255), nullable=False)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     content = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    channel_id = db.Column(db.Integer, db.ForeignKey('channel.id'), nullable=False)
-    replies = db.relationship('Reply', backref='post', lazy=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    channel_id = db.Column(db.Integer, nullable=False)
+    replies = db.relationship('Reply', backref='post', lazy=True, primaryjoin="Reply.post_id==Post.id", foreign_keys="Reply.post_id")
     edited = db.Column(db.Boolean, nullable=False, default=False)
-    likes = db.relationship('Like', backref='post', lazy=True)
+    likes = db.relationship('Like', backref='post', lazy=True, primaryjoin="Like.post_id==Post.id", foreign_keys="Like.post_id")
 
     def __repr__(self):
         return f"Post <{self.title}> by <{self.user_id}> Posted at: {self.date}"
@@ -94,13 +94,13 @@ class Reply(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'))
-    parent_reply_id = db.Column(db.Integer, db.ForeignKey('reply.id'))
+    user_id = db.Column(db.Integer, nullable=False)
+    post_id = db.Column(db.Integer)
+    parent_reply_id = db.Column(db.Integer)
     depth = db.Column(db.Integer, nullable=False)
-    replies = db.relationship('Reply', backref=db.backref('parent_reply', remote_side=[id]), lazy='joined')
+    replies = db.relationship('Reply', backref=db.backref('parent_reply', remote_side=[id]), lazy='joined', primaryjoin="Reply.parent_reply_id==Reply.id", foreign_keys="Reply.parent_reply_id")
     edited = db.Column(db.Boolean, nullable=False, default=False)
-    likes = db.relationship('Like', backref='reply', lazy=True)
+    likes = db.relationship('Like', backref='reply', lazy=True, primaryjoin="Like.reply_id==Reply.id", foreign_keys="Like.reply_id")
 
     def __repr__(self):
         return f"Reply <{self.content}> by <{self.user_id}> to <{self.post_id}> Posted at: {self.date}"

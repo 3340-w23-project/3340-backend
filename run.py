@@ -11,9 +11,9 @@ def create_db():
     from api import models
     print("creating tables...")
     with app.app_context():
+        db.drop_all()
         db.create_all()
 
-        # Hardcode some categories and channels here
         categories = {
             "General": ['General', 'Updates & News', 'Resources'],
             "First Year": ['COMP-1000', 'COMP-1047', 'COMP-1400', 'COMP-1410'],
@@ -39,7 +39,7 @@ if __name__=='__main__':
     if len(sys.argv) <= 3:
         if sys.argv[1] == 'prod':
             # run this command with the "prod" flag to run in prod
-            if not os.path.exists('instance/site.db') or (len(sys.argv) == 3 and sys.argv[2] == 'reset'):
+            if (len(sys.argv) == 3 and sys.argv[2] == 'setup'):
                 create_db()
             else:
                 print("database already exists, skipping")
@@ -48,7 +48,7 @@ if __name__=='__main__':
             os.system(f"gunicorn -b '0.0.0.0:{os.getenv('PORT')}' api:app")
 
         elif sys.argv[1] == 'dev':
-            if not os.path.exists('instance/site.db') or (len(sys.argv) == 3 and sys.argv[2] == 'reset'):
+            if (len(sys.argv) == 3 and sys.argv[2] == 'setup'):
                 create_db()
             else:
                 print("database already exists, skipping")
