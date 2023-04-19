@@ -1,13 +1,15 @@
+import json, os, re, bcrypt
 from datetime import datetime, timedelta, timezone
-import json
-import os
 from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, unset_jwt_cookies, jwt_required
-import bcrypt
 from api import app, db
 from api.models import User, Post, Channel, Category, Reply, Like
 from better_profanity import profanity
 profanity.load_censor_words()
+
+restricted_mode = os.environ.get("RESTRICTED_MODE", False) == True
+if restricted_mode:
+    allowed_usernames = os.environ.get("ALLOWED_USERNAMES", "").lower().split(",")
 
 # use this to simply ping the server
 @app.route('/ping')
@@ -15,27 +17,29 @@ profanity.load_censor_words()
 def ping():
     return {"msg":"pong"}, 200
 
-allowed_usernames = os.environ.get("ALLOWED_USERNAMES", "").split(",")
-restricted_mode = os.environ.get("RESTRICTED_MODE", "false").lower() == "true"
-
 @app.route('/signup', methods=["POST"])
 def signup():
     # get query params
     username = request.json.get("username", None)
     password = request.json.get("password", None)
 
-    if(profanity.contains_profanity(username)):
-        return {"msg": "username contains profanity"}, 400
-    
     # validate that params are sent in
     if username is None or password is None:
-        return {"msg": "username or password missing"}, 400
+        return {"msg": "Username or password missing"}, 400
     
-    if len(username) < 3:
-        return {"msg": "username must be at least 3 characters long"}, 400
+    if len(username) < 3 or len(username) > 20:
+        return {"msg": "Username must be between 3 and 20 characters"}, 400
     
-    if len(username) > 20:
-        return {"msg": "username must be at most 20 characters long"}, 400
+    if len(password) < 4 or len(password) > 30:
+        return {"msg": "Password must be between 4 and 30 characters"}, 400
+    
+    # check for illegal characters
+    if not re.match(r"^[a-zA-Z0-9_-]+$", username):
+        return {"msg": "Username contains illegal characters"}, 400
+    
+    # check for profanity
+    if(profanity.contains_profanity(username)):
+        return {"msg": "Username contains profanity"}, 400
 
     # convert username to lowercase
     lc_username = username.lower()
@@ -43,12 +47,11 @@ def signup():
     # check if user already exists (case insensitive)
     queried_user = User.query.filter(User.username.ilike(lc_username)).first()
     if queried_user:
-        return {"msg": f"user <{username}> already exists"}, 409
+        return {"msg": f"User <{username}> already exists"}, 409
 
     if restricted_mode:
-        # check if username is allowed
         if lc_username not in allowed_usernames:
-            return {"msg": f"user <{lc_username}> not allowed to sign up"}, 403
+            return {"msg": f"User <{lc_username}> not allowed to sign up"}, 403
 
     # creating a new user and adding it to the users table
     user = User(username=lc_username, display_name=username, password_hash=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
