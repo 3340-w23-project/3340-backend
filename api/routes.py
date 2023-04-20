@@ -346,38 +346,49 @@ def delete_post(post_id):
 
     return {"msg": f"successfully deleted post {post_id}"}, 200
 
-@app.route('/post/<int:post_id>/like', methods=['POST'])
+@app.route('/post/<int:post_id>/like', methods=['GET'])
 @jwt_required()
 def like_post(post_id):
     post = Post.query.get_or_404(post_id)
     current_user_username = get_jwt_identity()
     like = Like.query.filter_by(username=current_user_username, post_id=post_id).first()
+    channel_id = post.channel_id
+    channel = Channel.query.get(channel_id)
+    username = get_jwt_identity()
+
     if like:
         # User has already liked this post, so delete the like
         db.session.delete(like)
         db.session.commit()
-        return jsonify({'message': 'Like removed.'}), 200
     else:
         # User has not yet liked this post, so add a new like
         new_like = Like(username=current_user_username, post_id=post_id)
         db.session.add(new_like)
         db.session.commit()
-        return jsonify({'message': 'Post liked.'}), 201
 
-@app.route('/reply/<int:reply_id>/like', methods=['POST'])
+    posts = [post.to_dict(username=username) for post in channel.posts]
+    return {'posts': posts}, 200
+
+@app.route('/reply/<int:reply_id>/like', methods=['GET'])
 @jwt_required()
 def like_reply(reply_id):
     reply = Reply.query.get_or_404(reply_id)
+    post = Post.query.get(reply.post_id)
     current_user_username = get_jwt_identity()
     like = Like.query.filter_by(username=current_user_username, reply_id=reply_id).first()
+    channel_id = post.channel_id
+    channel = Channel.query.get(channel_id)
+    username = get_jwt_identity()
+
     if like:
         # User has already liked this reply, so delete the like
         db.session.delete(like)
         db.session.commit()
-        return jsonify({'message': 'Like removed.'}), 200
     else:
         # User has not yet liked this reply, so add a new like
         new_like = Like(username=current_user_username, reply_id=reply_id)
         db.session.add(new_like)
         db.session.commit()
-        return jsonify({'message': 'Reply liked.'}), 201
+
+    posts = [post.to_dict(username=username) for post in channel.posts]
+    return {'posts': posts}, 200
