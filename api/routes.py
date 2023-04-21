@@ -309,7 +309,7 @@ def delete_reply(reply_id):
         return {"msg": "reply not found"}, 404
 
     # checking if the user is authorized to delete the reply
-    if reply.user_id != user.id:
+    if reply.username != username:
         return {"msg": "unauthorized to delete this reply"}, 403
 
     # recursively delete all child replies
