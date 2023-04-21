@@ -6,11 +6,8 @@ class User(db.Model):
     username = db.Column(db.String(20), nullable=False, unique=True)
     display_name = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    posts = db.relationship('Post', backref='author', lazy=True, primaryjoin="Post.user_id==User.id", foreign_keys="Post.user_id")
-    replies = db.relationship('Reply', backref='author', lazy='joined', primaryjoin="Reply.user_id==User.id", foreign_keys="Reply.user_id")
-
-    def __repr__(self):
-        return f"User <{self.username}>"
+    posts = db.relationship('Post', backref='author', lazy=True, primaryjoin="Post.username==User.username", foreign_keys="Post.username")
+    replies = db.relationship('Reply', backref='author', lazy='joined', primaryjoin="Reply.username==User.username", foreign_keys="Reply.username")
 
     def to_dict(self):
         return {
@@ -51,22 +48,16 @@ class Like(db.Model):
     reply_id = db.Column(db.Integer)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    def __repr__(self):
-        return f"Like <{self.user_id}> on <{self.post_id or self.reply_id}> at: {self.date}"
-
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(20), nullable=False)
     title = db.Column(db.String(255), nullable=False)
-    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     content = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.Integer, nullable=False)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     channel_id = db.Column(db.Integer, nullable=False)
     replies = db.relationship('Reply', backref='post', lazy=True, primaryjoin="Reply.post_id==Post.id", foreign_keys="Reply.post_id")
     edited = db.Column(db.Boolean, nullable=False, default=False)
     likes = db.relationship('Like', backref='post', lazy=True, primaryjoin="Like.post_id==Post.id", foreign_keys="Like.post_id")
-
-    def __repr__(self):
-        return f"Post <{self.title}> by <{self.user_id}> Posted at: {self.date}"
 
     def to_dict(self, username=None):
         result = {
@@ -90,18 +81,15 @@ class Post(db.Model):
 
 class Reply(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(20), nullable=False)
     content = db.Column(db.Text, nullable=False)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, nullable=False)
     post_id = db.Column(db.Integer)
     parent_reply_id = db.Column(db.Integer)
     depth = db.Column(db.Integer, nullable=False)
     replies = db.relationship('Reply', backref=db.backref('parent_reply', remote_side=[id]), lazy='joined', primaryjoin="Reply.parent_reply_id==Reply.id", foreign_keys="Reply.parent_reply_id")
     edited = db.Column(db.Boolean, nullable=False, default=False)
     likes = db.relationship('Like', backref='reply', lazy=True, primaryjoin="Like.reply_id==Reply.id", foreign_keys="Like.reply_id")
-
-    def __repr__(self):
-        return f"Reply <{self.content}> by <{self.user_id}> to <{self.post_id}> Posted at: {self.date}"
 
     def to_dict(self, username=None):
         result = {

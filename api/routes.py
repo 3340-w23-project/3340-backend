@@ -16,6 +16,8 @@ if restricted_mode:
         "ALLOWED_USERNAMES", "").lower().split(",")
 
 # use this to simply ping the server
+
+
 @app.route('/ping')
 @app.route('/')
 def ping():
@@ -251,7 +253,7 @@ def create_reply(post_id):
         return {"msg": "maximum nesting level exceeded"}, 400
 
     # create new reply object
-    reply = Reply(content=content, user_id=user.id, post=post,
+    reply = Reply(content=content, username=username, post=post,
                   parent_reply=parent_reply, depth=depth)
     db.session.add(reply)
     db.session.commit()
