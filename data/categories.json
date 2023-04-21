@@ -1,0 +1,113 @@
+{
+  "General": [
+    { "name": "General", "desc": "General discussions" },
+    { "name": "Updates & News", "desc": "Updates and news about the server" },
+    { "name": "Resources", "desc": "Resources for learning and development" },
+    { "name": "Suggestions", "desc": "Suggestions for the server" }
+  ],
+  "First Year": [
+    { "name": "COMP-1000", "desc": "Key Concepts in Computer Science" },
+    { "name": "COMP-1047", "desc": "Computer Concepts for End-Users" },
+    {
+      "name": "COMP-1400",
+      "desc": "Introduction to Algorithms and Programming I"
+    },
+    {
+      "name": "COMP-1410",
+      "desc": "Introduction to Algorithms and Programming II"
+    }
+  ],
+  "Second Year": [
+    { "name": "COMP-2057", "desc": "Introduction to the Internet" },
+    { "name": "COMP-2067", "desc": "Programming for Beginners" },
+    {
+      "name": "COMP-2077",
+      "desc": "Problem Solving and Information on the Internet"
+    },
+    { "name": "COMP-2097", "desc": "Social Media Marketing for End Users" },
+    { "name": "COMP-2120", "desc": "Object-Oriented Programming Using Java" },
+    {
+      "name": "COMP-2140",
+      "desc": "Computer Languages, Grammars, and Translators"
+    },
+    {
+      "name": "COMP-2310",
+      "desc": "Theoretical Foundations of Computer Science"
+    },
+    { "name": "COMP-2540", "desc": "Data Structures and Algorithms" },
+    { "name": "COMP-2560", "desc": "Systems Programming" },
+    { "name": "COMP-2650", "desc": "Computer Architecture I: Digital Design" },
+    {
+      "name": "COMP-2660",
+      "desc": "Computer Architecture II: Microprocessor Programming"
+    },
+    {
+      "name": "COMP-2707",
+      "desc": "Advanced Web Design, Construction, and Deployment"
+    },
+    { "name": "COMP-2750", "desc": "Selected Topics" },
+    { "name": "COMP-2800", "desc": "Software Development" },
+    { "name": "COMP-2980", "desc": "Co-op Work Term I" }
+  ],
+  "Third Year": [
+    { "name": "COMP-3057", "desc": "Cyber-Ethics" },
+    { "name": "COMP-3077", "desc": "Web-Based Data Management" },
+    { "name": "COMP-3110", "desc": "Introduction to Software Engineering" },
+    { "name": "COMP-3150", "desc": "Database Management Systems" },
+    {
+      "name": "COMP-3220",
+      "desc": "Object-Oriented Software Analysis and Design"
+    },
+    { "name": "COMP-3300", "desc": "Operating Systems Fundamentals" },
+    {
+      "name": "COMP-3340",
+      "desc": "World Wide Web Information Systems Development"
+    },
+    {
+      "name": "COMP-3400",
+      "desc": "Advanced Object Oriented System Design Using C++"
+    },
+    { "name": "COMP-3500", "desc": "Introduction to Multimedia Systems" },
+    { "name": "COMP-3520", "desc": "Introduction to Computer Graphics" },
+    { "name": "COMP-3540", "desc": "Theory of Computation" },
+    { "name": "COMP-3670", "desc": "Computer Networks" },
+    { "name": "COMP-3680", "desc": "Network Practicum" },
+    { "name": "COMP-3710", "desc": "Artificial Intelligence Concepts" },
+    { "name": "COMP-3750", "desc": "Selected Topics" },
+    { "name": "COMP-3760", "desc": "Selected Topics" },
+    { "name": "COMP-3770", "desc": "Game Design, Development and Tools" },
+    { "name": "COMP-3980", "desc": "Co-op Work Term II" }
+  ],
+  "Fourth Year": [
+    { "name": "COMP-4110", "desc": "Software Verification and Testing" },
+    { "name": "COMP-4150", "desc": "Advanced and Practical Database Systems" },
+    { "name": "COMP-4200", "desc": "Mobile Application Development" },
+    { "name": "COMP-4220", "desc": "Agile Software Development" },
+    { "name": "COMP-4250", "desc": "Big Data Analytics and Database Design" },
+    { "name": "COMP-4400", "desc": "Principles of Programming Languages" },
+    { "name": "COMP-4500", "desc": "Multimedia System Development" },
+    {
+      "name": "COMP-4540",
+      "desc": "Design and Analysis of Computer Algorithms"
+    },
+    { "name": "COMP-4670", "desc": "Network Security" },
+    { "name": "COMP-4680", "desc": "Advanced Networking" },
+    { "name": "COMP-4700", "desc": "Project Using Selected Tools" },
+    {
+      "name": "COMP-4730",
+      "desc": "Advanced Topics in Artificial Intelligence I"
+    },
+    {
+      "name": "COMP-4740",
+      "desc": "Advanced Topics in Artificial Intelligence II"
+    },
+    { "name": "COMP-4750", "desc": "Selected Topics" },
+    { "name": "COMP-4760", "desc": "Selected Topics" },
+    { "name": "COMP-4770", "desc": "Artificial Intelligence for Games" },
+    { "name": "COMP-4800", "desc": "Selected Topics in Software Engineering" },
+    { "name": "COMP-4960", "desc": "Research Project" },
+    { "name": "COMP-4970", "desc": "Co-op Work Term III" },
+    { "name": "COMP-4980", "desc": "Co-op Work Term IV" },
+    { "name": "COMP-4990", "desc": "Project Management: Techniques and Tools" }
+  ]
+}

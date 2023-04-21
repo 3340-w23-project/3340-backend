@@ -1,4 +1,7 @@
-import json, os, re, bcrypt
+import json
+import os
+import re
+import bcrypt
 from datetime import datetime, timedelta, timezone
 from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, unset_jwt_cookies, jwt_required
@@ -9,13 +12,15 @@ profanity.load_censor_words()
 
 restricted_mode = os.environ.get("RESTRICTED_MODE", False) == True
 if restricted_mode:
-    allowed_usernames = os.environ.get("ALLOWED_USERNAMES", "").lower().split(",")
+    allowed_usernames = os.environ.get(
+        "ALLOWED_USERNAMES", "").lower().split(",")
 
 # use this to simply ping the server
 @app.route('/ping')
 @app.route('/')
 def ping():
-    return {"msg":"pong"}, 200
+    return {"msg": "pong"}, 200
+
 
 @app.route('/signup', methods=["POST"])
 def signup():
@@ -26,19 +31,19 @@ def signup():
     # validate that params are sent in
     if username is None or password is None:
         return {"msg": "Username or password missing"}, 400
-    
+
     if len(username) < 3 or len(username) > 20:
         return {"msg": "Username must be between 3 and 20 characters"}, 400
-    
+
     if len(password) < 4 or len(password) > 30:
         return {"msg": "Password must be between 4 and 30 characters"}, 400
-    
+
     # check for illegal characters
     if not re.match(r"^[a-zA-Z0-9_-]+$", username):
         return {"msg": "Username contains illegal characters"}, 400
-    
+
     # check for profanity
-    if(profanity.contains_profanity(username)):
+    if (profanity.contains_profanity(username)):
         return {"msg": "Username contains profanity"}, 400
 
     # convert username to lowercase
@@ -54,21 +59,23 @@ def signup():
             return {"msg": f"User <{lc_username}> not allowed to sign up"}, 403
 
     # creating a new user and adding it to the users table
-    user = User(username=lc_username, display_name=username, password_hash=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
+    user = User(username=lc_username, display_name=username, password_hash=bcrypt.hashpw(
+        password.encode('utf-8'), bcrypt.gensalt()))
     db.session.add(user)
     db.session.commit()
     return {"msg": f"user <{username}> created successfully"}, 201
+
 
 @app.route('/signin', methods=["POST"])
 def login():
     # get query params
     username = request.json.get("username", None)
     password = request.json.get("password", None)
-    
+
     # validate that params are sent in
     if username is None or password is None:
         return {"msg": "username or password missing"}, 400
-    
+
     if len(username) < 3 or len(username) > 20:
         return {"msg": "invalid username"}, 400
 
@@ -80,11 +87,12 @@ def login():
 
     # if user doesn't exist or the password is incorrect, we return unauthorized
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
-        return {"msg":"incorrect username or password"}, 401
+        return {"msg": "incorrect username or password"}, 401
 
     # creating jwt token and returning it
     access_token = create_access_token(identity=lc_username)
-    return {"access_token":access_token}, 200
+    return {"access_token": access_token}, 200
+
 
 @app.route("/logout", methods=["POST"])
 def logout():
@@ -92,12 +100,13 @@ def logout():
     unset_jwt_cookies(response)
     return response
 
+
 @app.after_request
 def refresh_expiring_jwts(response):
     try:
         exp_timestamp = get_jwt()["exp"]
         now = datetime.now(timezone.utc)
-        target_timestamp = datetime.timestamp(now + timedelta(minutes=30))
+        target_timestamp = datetime.timestamp(now + timedelta(hours=6))
         if target_timestamp > exp_timestamp:
             access_token = create_access_token(identity=get_jwt_identity())
             data = response.get_json()
@@ -111,6 +120,8 @@ def refresh_expiring_jwts(response):
 
 # this is just a dummy endpoint to check if your JWT auth is working
 # it will return back the username associated with your JWT token
+
+
 @app.route('/identity')
 @jwt_required()
 def my_profile():
@@ -120,14 +131,19 @@ def my_profile():
 # our authentication was inspired by the following article:
 # https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7
 
+
 @app.route('/categories')
+@jwt_required()
 def get_categories():
     categories = Category.query.all()
     response = []
     for category in categories:
-        channels_list = [{'id': channel.id, 'name': channel.name} for channel in category.channels]
-        response.append({'id': category.id, 'name': category.name, 'channels': channels_list})
+        channels_list = [{'id': channel.id, 'name': channel.name}
+                         for channel in category.channels]
+        response.append(
+            {'id': category.id, 'name': category.name, 'channels': channels_list})
     return {'categories': response}, 200
+
 
 @app.route('/post/all')
 @jwt_required()
@@ -136,6 +152,20 @@ def posts():
     posts.reverse()
     username = get_jwt_identity()
     return jsonify([post.to_dict(username=username) for post in posts])
+
+
+@app.route('/channel/<int:channel_id>', methods=["GET"])
+@jwt_required()
+def get_channel(channel_id):
+    # Get the channel object
+    channel = Channel.query.get(channel_id)
+
+    # Check if the channel exists
+    if not channel:
+        return {"msg": "channel not found"}, 404
+
+    return channel.to_dict(), 200
+
 
 @app.route('/channel/<int:channel_id>/posts')
 @jwt_required()
@@ -151,7 +181,8 @@ def get_posts_in_channel(channel_id):
     # Get all posts in the channel and convert them to dictionaries
     posts = [post.to_dict(username=username) for post in channel.posts]
 
-    return {'channel_name': channel.name, 'posts': posts}, 200
+    return posts, 200
+
 
 @app.route('/post/new', methods=["POST"])
 @jwt_required()
@@ -182,6 +213,7 @@ def new_post():
     db.session.commit()
 
     return {"msg": "post created successfully"}, 200
+
 
 @app.route('/post/<int:post_id>/reply', methods=['POST'])
 @jwt_required()
@@ -221,11 +253,13 @@ def create_reply(post_id):
         return {"msg": "maximum nesting level exceeded"}, 400
 
     # create new reply object
-    reply = Reply(content=content, user_id=user.id, post=post, parent_reply=parent_reply, depth=depth)
+    reply = Reply(content=content, user_id=user.id, post=post,
+                  parent_reply=parent_reply, depth=depth)
     db.session.add(reply)
     db.session.commit()
 
     return {"msg": "reply created successfully"}, 201
+
 
 @app.route('/reply/<int:reply_id>/update', methods=['POST'])
 @jwt_required()
@@ -292,6 +326,7 @@ def delete_reply(reply_id):
 
     return {"msg": "reply and all its children deleted successfully"}, 200
 
+
 @app.route('/post/<post_id>/update', methods=["POST"])
 @jwt_required()
 def update_post(post_id):
@@ -323,6 +358,7 @@ def update_post(post_id):
 
     return {"msg": "post updated successfully"}, 200
 
+
 @app.route('/post/<post_id>/delete', methods=["POST"])
 @jwt_required()
 def delete_post(post_id):
@@ -346,12 +382,14 @@ def delete_post(post_id):
 
     return {"msg": f"successfully deleted post {post_id}"}, 200
 
+
 @app.route('/post/<int:post_id>/like', methods=['GET'])
 @jwt_required()
 def like_post(post_id):
     post = Post.query.get_or_404(post_id)
     current_user_username = get_jwt_identity()
-    like = Like.query.filter_by(username=current_user_username, post_id=post_id).first()
+    like = Like.query.filter_by(
+        username=current_user_username, post_id=post_id).first()
     channel_id = post.channel_id
     channel = Channel.query.get(channel_id)
     username = get_jwt_identity()
@@ -367,7 +405,8 @@ def like_post(post_id):
         db.session.commit()
 
     posts = [post.to_dict(username=username) for post in channel.posts]
-    return {'posts': posts}, 200
+    return posts, 200
+
 
 @app.route('/reply/<int:reply_id>/like', methods=['GET'])
 @jwt_required()
@@ -375,7 +414,8 @@ def like_reply(reply_id):
     reply = Reply.query.get_or_404(reply_id)
     post = Post.query.get(reply.post_id)
     current_user_username = get_jwt_identity()
-    like = Like.query.filter_by(username=current_user_username, reply_id=reply_id).first()
+    like = Like.query.filter_by(
+        username=current_user_username, reply_id=reply_id).first()
     channel_id = post.channel_id
     channel = Channel.query.get(channel_id)
     username = get_jwt_identity()
@@ -391,4 +431,4 @@ def like_reply(reply_id):
         db.session.commit()
 
     posts = [post.to_dict(username=username) for post in channel.posts]
-    return {'posts': posts}, 200
+    return posts, 200

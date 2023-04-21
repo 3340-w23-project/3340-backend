@@ -33,17 +33,15 @@ class Category(db.Model):
 class Channel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=False)
     category_id = db.Column(db.Integer, nullable=False)
     posts = db.relationship('Post', backref='channel', lazy=True, primaryjoin="Post.channel_id==Channel.id", foreign_keys="Post.channel_id")
-
-    def __repr__(self):
-        return f"Channel <{self.name}>"
 
     def to_dict(self):
         return {
             'id': self.id,
             'name': self.name,
-            'posts': [post.to_dict() for post in self.posts]
+            'description': self.description,
         }
     
 class Like(db.Model):
