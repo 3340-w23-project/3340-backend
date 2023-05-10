@@ -274,7 +274,7 @@ def update_reply(reply_id):
         return {"msg": "reply not found"}, 404
 
     # checking if the user is authorized to update the reply
-    if reply.user_id != user.id:
+    if reply.username != username:
         return {"msg": "unauthorized to update this reply"}, 403
 
     # get query params
