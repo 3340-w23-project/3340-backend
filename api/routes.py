@@ -63,7 +63,7 @@ def signup():
         password.encode('utf-8'), bcrypt.gensalt()))
     db.session.add(user)
     db.session.commit()
-    return {"msg": f"user <{username}> created successfully"}, 201
+    return {"msg": f"User <{username}> created successfully"}, 201
 
 
 @app.route('/signin', methods=["POST"])
@@ -87,7 +87,7 @@ def login():
 
     # if user doesn't exist or the password is incorrect, we return unauthorized
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
-        return {"msg": "incorrect username or password"}, 401
+        return {"msg": "Incorrect username or password"}, 401
 
     # creating jwt token and returning it
     access_token = create_access_token(identity=lc_username)
@@ -96,7 +96,7 @@ def login():
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    response = jsonify({"msg": "logout successful"})
+    response = jsonify({"msg": "Logout successful"})
     unset_jwt_cookies(response)
     return response
 
@@ -173,7 +173,7 @@ def get_posts_in_channel(channel_id):
 
     # Check if the channel exists
     if not channel:
-        return {"msg": "channel not found"}, 404
+        return {"msg": "Channel not found"}, 404
 
     username = get_jwt_identity()
     # Get all posts in the channel and convert them to dictionaries
@@ -192,25 +192,25 @@ def new_post():
 
     # validate that params are sent in
     if title is None or content is None or channel_id is None:
-        return {"msg": "title, content, or channel_id missing"}, 400
+        return {"msg": "Title, content, or channel_id missing"}, 400
 
     # getting user
     username = get_jwt_identity()
     user = User.query.filter_by(username=username).first()
     if not user:
-        return {"msg": "error fetching user from JWT token"}, 401
+        return {"msg": "Error fetching user from JWT token"}, 401
 
     # checking if the channel exists
     channel = Channel.query.filter_by(id=channel_id).first()
     if not channel:
-        return {"msg": "channel not found"}, 404
+        return {"msg": "Channel not found"}, 404
 
     # creating and adding the new post to the specified channel
     post = Post(title=title, content=content, author=user, channel=channel)
     db.session.add(post)
     db.session.commit()
 
-    return {"msg": "post created successfully"}, 200
+    return {"msg": "Post created successfully"}, 200
 
 
 @app.route('/post/<int:post_id>/reply', methods=['POST'])
@@ -222,18 +222,18 @@ def create_reply(post_id):
 
     # validate that params are sent in
     if content is None:
-        return {"msg": "content missing"}, 400
+        return {"msg": "Content missing"}, 400
 
     # getting user
     username = get_jwt_identity()
     user = User.query.filter_by(username=username).first()
     if not user:
-        return {"msg": "error fetching user from JWT token"}, 401
+        return {"msg": "Error fetching user from JWT token"}, 401
 
     # checking if the post exists
     post = Post.query.filter_by(id=post_id).first()
     if not post:
-        return {"msg": "post not found"}, 404
+        return {"msg": "Post not found"}, 404
 
     # Declare parent_reply outside of the conditional block
     parent_reply = None
@@ -242,13 +242,13 @@ def create_reply(post_id):
     if parent_reply_id:
         parent_reply = Reply.query.filter_by(id=parent_reply_id).first()
         if not parent_reply:
-            return {"msg": "parent reply not found"}, 404
+            return {"msg": "Parent reply not found"}, 404
         depth = parent_reply.depth + 1
     else:
         depth = 0
 
     if depth > 5:
-        return {"msg": "maximum nesting level exceeded"}, 400
+        return {"msg": "Maximum nesting level exceeded"}, 400
 
     # create new reply object
     reply = Reply(content=content, username=username, post=post,
@@ -256,7 +256,7 @@ def create_reply(post_id):
     db.session.add(reply)
     db.session.commit()
 
-    return {"msg": "reply created successfully"}, 201
+    return {"msg": "Reply created successfully"}, 201
 
 
 @app.route('/reply/<int:reply_id>/update', methods=['POST'])
@@ -266,30 +266,30 @@ def update_reply(reply_id):
     username = get_jwt_identity()
     user = User.query.filter_by(username=username).first()
     if not user:
-        return {"msg": "error fetching user from JWT token"}, 401
+        return {"msg": "Error fetching user from JWT token"}, 401
 
     # checking if the reply exists
     reply = Reply.query.filter_by(id=reply_id).first()
     if not reply:
-        return {"msg": "reply not found"}, 404
+        return {"msg": "Reply not found"}, 404
 
     # checking if the user is authorized to update the reply
     if reply.username != username:
-        return {"msg": "unauthorized to update this reply"}, 403
+        return {"msg": "Unauthorized to update this reply"}, 403
 
     # get query params
     content = profanity.censor(request.json.get("content", None))
 
     # validate that params are sent in
     if content is None:
-        return {"msg": "content missing"}, 400
+        return {"msg": "Content missing"}, 400
 
     # update the reply object
     reply.content = content
     reply.edited = True
     db.session.commit()
 
-    return {"msg": "reply updated successfully"}, 200
+    return {"msg": "Reply updated successfully"}, 200
 
 
 @app.route('/reply/<int:reply_id>/delete', methods=['POST'])
@@ -299,16 +299,16 @@ def delete_reply(reply_id):
     username = get_jwt_identity()
     user = User.query.filter_by(username=username).first()
     if not user:
-        return {"msg": "error fetching user from JWT token"}, 401
+        return {"msg": "Error fetching user from JWT token"}, 401
 
     # checking if the reply exists
     reply = Reply.query.filter_by(id=reply_id).first()
     if not reply:
-        return {"msg": "reply not found"}, 404
+        return {"msg": "Reply not found"}, 404
 
     # checking if the user is authorized to delete the reply
     if reply.username != username:
-        return {"msg": "unauthorized to delete this reply"}, 403
+        return {"msg": "Unauthorized to delete this reply"}, 403
 
     # recursively delete all child replies
     def delete_children(reply):
@@ -322,7 +322,7 @@ def delete_reply(reply_id):
     db.session.delete(reply)
     db.session.commit()
 
-    return {"msg": "reply and all its children deleted successfully"}, 200
+    return {"msg": "Reply and all its children deleted successfully"}, 200
 
 
 @app.route('/post/<post_id>/update', methods=["POST"])
@@ -330,12 +330,12 @@ def delete_reply(reply_id):
 def update_post(post_id):
     post = Post.query.filter_by(id=post_id).first()
     if not post:
-        return {"msg": "post not found"}, 404
+        return {"msg": "Post not found"}, 404
 
     username = get_jwt_identity()
     user = User.query.filter_by(username=username).first()
     if not user:
-        return {"msg": "error fetching user from JWT token"}, 401
+        return {"msg": "Error fetching user from JWT token"}, 401
 
     if post.author != user:
         return {"msg": "You do not have permission to modify this post"}, 401
@@ -346,7 +346,7 @@ def update_post(post_id):
 
     # validate that params are sent in
     if title is None or content is None:
-        return {"msg": "title or content missing"}, 400
+        return {"msg": "Title or content missing"}, 400
 
     # updating values of post
     post.title = title
@@ -354,7 +354,7 @@ def update_post(post_id):
     post.edited = True
     db.session.commit()
 
-    return {"msg": "post updated successfully"}, 200
+    return {"msg": "Post updated successfully"}, 200
 
 
 @app.route('/post/<post_id>/delete', methods=["POST"])
@@ -362,12 +362,12 @@ def update_post(post_id):
 def delete_post(post_id):
     post = Post.query.filter_by(id=post_id).first()
     if not post:
-        return {"msg": "post not found"}, 404
+        return {"msg": "Post not found"}, 404
 
     username = get_jwt_identity()
     user = User.query.filter_by(username=username).first()
     if not user:
-        return {"msg": "error fetching user from JWT token"}, 401
+        return {"msg": "Error fetching user from JWT token"}, 401
 
     if post.author != user:
         return {"msg": "You do not have permission to modify this post"}, 401
