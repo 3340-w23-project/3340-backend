@@ -4,6 +4,7 @@ from datetime import timedelta
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 import pymysql
 
 load_dotenv()
@@ -33,6 +34,14 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         }
     }
 }
+
+# cors config
+if os.getenv('ENVIRONMENT') == 'dev':
+    # allow localhost:3000
+    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+else:
+    # allow only the frontend origin
+    CORS(app, resources={r"/*": {"origins": os.getenv('FRONTEND_ORIGIN')}})
 
 # initialize the app with the extension
 db.init_app(app)

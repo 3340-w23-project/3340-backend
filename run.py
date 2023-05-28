@@ -1,65 +1,87 @@
 import os
 import sys
-import json
 from api import app, db
 from api.models import Category, Channel
 from dotenv import load_dotenv
 load_dotenv()
 
 
-def create_db():
+def setup_db():
+    import json
     print("setting up db ...")
-    print("importing models ...")
-    from api import models
     print("creating tables...")
     with app.app_context():
-        # db.drop_all()
         db.create_all()
 
-        with open('data/categories.json', 'r') as file:
-            categories = json.load(file)
+        # check if the categories table is empty
+        if Category.query.count() == 0:
+            print("populating categories table ...")
+            with open('data/categories.json', 'r') as file:
+                categories = json.load(file)
+                for category_name, channels in categories.items():
+                    category = Category(name=category_name)
+                    db.session.add(category)
 
-            for category_name, channels in categories.items():
-                category = Category(name=category_name)
-                db.session.add(category)
-
-                for channel in channels:
-                    channelItem = Channel(
-                        name=channel['name'], category=category, description=channel['desc'])
-                    db.session.add(channelItem)
-            db.session.commit()
-            print("done setting up database!")
-            exit(0)
-
-
-# running site
-if __name__ == '__main__':
-    # without an additional arg to run in debug
-    if len(sys.argv) <= 3:
-        if sys.argv[1] == 'prod':
-            # run this command with the "prod" flag to run in prod
-            if (len(sys.argv) == 3 and sys.argv[2] == 'setup'):
-                create_db()
-            else:
-                print("database already exists, skipping")
-
-            print('<< PROD >>')
-            os.system(f"gunicorn -b '0.0.0.0:{os.getenv('PORT')}' api:app")
-
-        elif sys.argv[1] == 'dev':
-            if (len(sys.argv) == 3 and sys.argv[2] == 'setup'):
-                create_db()
-            elif (len(sys.argv) == 3 and sys.argv[2] == 'update'):
-                with app.app_context():
-                    db.create_all()
-            else:
-                print("database already exists, skipping")
-
-            print('<< DEBUG >>')
-            app.run(debug=True, host="0.0.0.0")
+                    for channel in channels:
+                        channelItem = Channel(
+                            name=channel['name'], category=category, description=channel['desc'])
+                        db.session.add(channelItem)
+                db.session.commit()
+                print("done populating categories table!")
         else:
-            print(f"unknown option '{sys.argv[1]}', exiting")
-            exit(1)
-    else:
+            print(
+                "categories table is not empty, run with the \"update\" argument to update the database")
+            print("skipping categories table population ...")
+        print("done setting up database!")
+
+
+def reset_db():
+    print("resetting db ...")
+    with app.app_context():
+        db.drop_all()
+        db.session.commit()
+        print("done resetting db!")
+
+
+def reset_categories():
+    with app.app_context():
+        print("resetting categories ...")
+        db.session.query(Category).delete()
+        db.session.commit()
+        print("done resetting categories!")
+
+
+# running the app
+if __name__ == '__main__':
+    if len(sys.argv) > 2:
         print("Too many arguments, exiting")
         exit(1)
+    else:
+        if len(sys.argv) == 2:
+            # The app is running in prod or we are in the reloaded process
+            if os.getenv('ENVIRONMENT') == "prod" or os.getenv('WERKZEUG_RUN_MAIN') == 'true':
+                if sys.argv[1] == 'setup':
+                    setup_db()
+                elif sys.argv[1] == 'reset':
+                    reset_db()
+                    setup_db()
+                elif sys.argv[1] == 'update':
+                    reset_categories()
+                    setup_db()
+                else:
+                    print("unknown argument, exiting")
+                    exit(1)
+
+        # PROD
+        if os.getenv('ENVIRONMENT') == "prod":
+            print('<< PRODUCTION >>')
+            os.system(f"gunicorn -b '0.0.0.0:{os.getenv('PORT')}' api:app")
+
+        # DEV
+        elif os.getenv('ENVIRONMENT') == 'dev':
+            print('<< DEVELOPMENT >>')
+            app.run(debug=True, host="0.0.0.0")
+
+        else:
+            print(f"unknown environment: {os.getenv('ENVIRONMENT')}")
+            exit(1)
