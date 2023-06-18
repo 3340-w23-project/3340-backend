@@ -57,6 +57,7 @@ class Post(db.Model):
     channel_id = db.Column(db.Integer, nullable=False)
     replies = db.relationship('Reply', backref='post', lazy=True, primaryjoin="Reply.post_id==Post.id", foreign_keys="Reply.post_id")
     edited = db.Column(db.Boolean, nullable=False, default=False)
+    edited_date = db.Column(db.DateTime, nullable=True)
     likes = db.relationship('Like', backref='post', lazy=True, primaryjoin="Like.post_id==Post.id", foreign_keys="Like.post_id")
 
     def to_dict(self, username=None):
@@ -89,6 +90,7 @@ class Reply(db.Model):
     depth = db.Column(db.Integer, nullable=False)
     replies = db.relationship('Reply', backref=db.backref('parent_reply', remote_side=[id]), lazy='joined', primaryjoin="Reply.parent_reply_id==Reply.id", foreign_keys="Reply.parent_reply_id")
     edited = db.Column(db.Boolean, nullable=False, default=False)
+    edited_date = db.Column(db.DateTime, nullable=True)
     likes = db.relationship('Like', backref='reply', lazy=True, primaryjoin="Like.reply_id==Reply.id", foreign_keys="Like.reply_id")
 
     def to_dict(self, username=None):
