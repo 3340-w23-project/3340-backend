@@ -59,8 +59,8 @@ def signup():
             return {"msg": f"User <{lc_username}> not allowed to sign up"}, 403
 
     # creating a new user and adding it to the users table
-    user = User(username=lc_username, display_name=username, password_hash=bcrypt.hashpw(
-        password.encode('utf-8'), bcrypt.gensalt()))
+    user = User(username=lc_username, display_name=username, role_id=1,
+                password_hash=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
     db.session.add(user)
     db.session.commit()
     return {"msg": f"User <{username}> created successfully"}, 201

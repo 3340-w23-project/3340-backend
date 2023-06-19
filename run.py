@@ -3,8 +3,10 @@ import sys
 from api import app, db
 from api.models import Category, Channel
 from dotenv import load_dotenv
+from flask_migrate import Migrate
 load_dotenv()
 
+migrate = Migrate(app, db)
 
 def setup_db():
     import json

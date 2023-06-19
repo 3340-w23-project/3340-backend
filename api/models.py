@@ -6,8 +6,10 @@ class User(db.Model):
     username = db.Column(db.String(20), nullable=False, unique=True)
     display_name = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    posts = db.relationship('Post', backref='author', lazy=True, primaryjoin="Post.username==User.username", foreign_keys="Post.username")
-    replies = db.relationship('Reply', backref='author', lazy='joined', primaryjoin="Reply.username==User.username", foreign_keys="Reply.username")
+    role_id = db.Column(db.Integer, nullable=False)
+    role = db.relationship('Role', primaryjoin="foreign(Role.id)==User.role_id", backref='users', uselist=False)
+    posts = db.relationship('Post', backref='author', lazy=True, primaryjoin="foreign(Post.username)==User.username")
+    replies = db.relationship('Reply', backref='author', lazy=True, primaryjoin="foreign(Reply.username)==User.username")
 
     def to_dict(self):
         return {
@@ -16,10 +18,20 @@ class User(db.Model):
             'display_name': self.display_name
         }
 
+class Role(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(20), nullable=False, unique=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name
+        }
+
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
-    channels = db.relationship('Channel', backref='category', lazy=True, primaryjoin="Channel.category_id==Category.id", foreign_keys="Channel.category_id")
+    channels = db.relationship('Channel', backref='category', lazy=True, primaryjoin="foreign(Channel.category_id)==Category.id")
 
     def to_dict(self):
         return {
@@ -32,7 +44,7 @@ class Channel(db.Model):
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=False)
     category_id = db.Column(db.Integer, nullable=False)
-    posts = db.relationship('Post', backref='channel', lazy=True, primaryjoin="Post.channel_id==Channel.id", foreign_keys="Post.channel_id")
+    posts = db.relationship('Post', backref='channel', lazy=True, primaryjoin="foreign(Post.channel_id)==Channel.id")
 
     def to_dict(self):
         return {
@@ -55,10 +67,11 @@ class Post(db.Model):
     content = db.Column(db.Text, nullable=False)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     channel_id = db.Column(db.Integer, nullable=False)
-    replies = db.relationship('Reply', backref='post', lazy=True, primaryjoin="Reply.post_id==Post.id", foreign_keys="Reply.post_id")
+    replies = db.relationship('Reply', backref='post', lazy=True, primaryjoin="foreign(Reply.post_id)==Post.id")
     edited = db.Column(db.Boolean, nullable=False, default=False)
     edited_date = db.Column(db.DateTime, nullable=True)
     likes = db.relationship('Like', backref='post', lazy=True, primaryjoin="Like.post_id==Post.id", foreign_keys="Like.post_id")
+    likes = db.relationship('Like', backref='post', lazy=True, primaryjoin="foreign(Like.post_id)==Post.id")
 
     def to_dict(self, username=None):
         result = {
@@ -88,10 +101,11 @@ class Reply(db.Model):
     post_id = db.Column(db.Integer)
     parent_reply_id = db.Column(db.Integer)
     depth = db.Column(db.Integer, nullable=False)
-    replies = db.relationship('Reply', backref=db.backref('parent_reply', remote_side=[id]), lazy='joined', primaryjoin="Reply.parent_reply_id==Reply.id", foreign_keys="Reply.parent_reply_id")
+    replies = db.relationship('Reply', backref=db.backref('parent_reply', remote_side=[id]), lazy='joined', primaryjoin="foreign(Reply.parent_reply_id)==Reply.id")
     edited = db.Column(db.Boolean, nullable=False, default=False)
     edited_date = db.Column(db.DateTime, nullable=True)
     likes = db.relationship('Like', backref='reply', lazy=True, primaryjoin="Like.reply_id==Reply.id", foreign_keys="Like.reply_id")
+    likes = db.relationship('Like', backref='reply', lazy=True, primaryjoin="foreign(Like.reply_id)==Reply.id")
 
     def to_dict(self, username=None):
         result = {
