@@ -87,6 +87,7 @@ class Post(db.Model):
             result['replies'] = [reply.to_dict(username=username) for reply in self.replies if not reply.parent_reply_id]
         if self.edited:
             result['edited'] = True
+            result['edited_date'] = self.edited_date.strftime("%Y-%m-%d %H:%M:%S")
         if username:
             like = Like.query.filter_by(username=username, post_id=self.id).first()
             if like:
@@ -123,6 +124,7 @@ class Reply(db.Model):
             result['replies'] = [reply.to_dict(username=username) for reply in self.replies]
         if self.edited:
             result['edited'] = True
+            result['edited_date'] = self.edited_date.strftime("%Y-%m-%d %H:%M:%S")
         if username:
             like = Like.query.filter_by(username=username, reply_id=self.id).first()
             if like:
