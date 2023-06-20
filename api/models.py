@@ -6,6 +6,7 @@ class User(db.Model):
     username = db.Column(db.String(20), nullable=False, unique=True)
     display_name = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    date_joined = db.Column(db.DateTime, default=datetime.utcnow)
     role_id = db.Column(db.Integer, nullable=False)
     role = db.relationship('Role', primaryjoin="foreign(Role.id)==User.role_id", backref='users', uselist=False)
     posts = db.relationship('Post', backref='author', lazy=True, primaryjoin="foreign(Post.username)==User.username")
