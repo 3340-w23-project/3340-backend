@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, unset_jwt_cookies, jwt_required
 from api import app, db
-from api.models import User, Post, Channel, Category, Reply, Like
+from api.models import User, Post, Channel, Category, Reply, Like, Role
 from better_profanity import profanity
 profanity.load_censor_words()
 
@@ -59,7 +59,7 @@ def signup():
             return {"msg": f"User <{lc_username}> not allowed to sign up"}, 403
 
     # creating a new user and adding it to the users table
-    user = User(username=lc_username, display_name=username, role_id=1,
+    user = User(username=lc_username, display_name=username, role_id=0,
                 password_hash=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
     db.session.add(user)
     db.session.commit()
@@ -85,13 +85,22 @@ def login():
     # get user by username (case insensitive)
     user = User.query.filter(User.username.ilike(lc_username)).first()
 
+    # get role
+    role = Role.query.filter(Role.id == user.role_id).first()
+
     # if user doesn't exist or the password is incorrect, we return unauthorized
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         return {"msg": "Incorrect username or password"}, 401
 
     # creating jwt token and returning it
     access_token = create_access_token(identity=lc_username)
-    return {"username": lc_username, "display_name": user.display_name, "access_token": access_token}, 200
+    return {
+        "username": lc_username,
+        "display_name": user.display_name,
+        "role_id": user.role_id,
+        "role": role,
+        "access_token": access_token
+        }, 200
 
 
 @app.route("/logout", methods=["POST"])
@@ -123,7 +132,14 @@ def refresh_expiring_jwts(response):
 @app.route('/identity')
 @jwt_required()
 def my_profile():
-    return {"username": get_jwt_identity(), "display_name": User.query.filter(User.username.ilike(get_jwt_identity())).first().display_name}, 200
+    user = User.query.filter(User.username.ilike(get_jwt_identity())).first()
+    role = Role.query.filter(Role.id == user.role_id).first()
+    return {
+        "username": user.username,
+        "display_name": user.display_name,
+        "role_id": user.role_id,
+        "role": role,
+        }, 200
 
 # CREDITS
 # our authentication was inspired by the following article:
