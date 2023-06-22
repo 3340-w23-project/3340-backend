@@ -88,7 +88,9 @@ def login():
     user = User.query.filter(User.username.ilike(lc_username)).first()
 
     # get role
-    role = Role.query.filter(Role.id == user.role_id).first().name
+    role = Role.query.filter(Role.id == user.role_id).first()
+    if role:
+        role = role.name
 
     # if user doesn't exist or the password is incorrect, we return unauthorized
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
@@ -138,6 +140,8 @@ def refresh_expiring_jwts(response):
 def my_profile():
     user = User.query.filter(User.username.ilike(get_jwt_identity())).first()
     role = Role.query.filter(Role.id == user.role_id).first().name
+    if role:
+        role = role.name
     return {
         "username": user.username,
         "display_name": user.display_name,
