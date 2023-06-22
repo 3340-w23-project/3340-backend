@@ -16,6 +16,8 @@ if restricted_mode:
         "ALLOWED_USERNAMES", "").lower().split(",")
 
 # use this to simply ping the server
+
+
 @app.route('/ping')
 @app.route('/')
 def ping():
@@ -86,7 +88,7 @@ def login():
     user = User.query.filter(User.username.ilike(lc_username)).first()
 
     # get role
-    role = Role.query.filter(Role.id == user.role_id).first()
+    role = Role.query.filter(Role.id == user.role_id).first().name
 
     # if user doesn't exist or the password is incorrect, we return unauthorized
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
@@ -100,7 +102,7 @@ def login():
         "role_id": user.role_id,
         "role": role,
         "access_token": access_token
-        }, 200
+    }, 200
 
 
 @app.route("/logout", methods=["POST"])
@@ -129,17 +131,19 @@ def refresh_expiring_jwts(response):
 
 # this is just a dummy endpoint to check if your JWT auth is working
 # it will return back the username associated with your JWT token
+
+
 @app.route('/identity')
 @jwt_required()
 def my_profile():
     user = User.query.filter(User.username.ilike(get_jwt_identity())).first()
-    role = Role.query.filter(Role.id == user.role_id).first()
+    role = Role.query.filter(Role.id == user.role_id).first().name
     return {
         "username": user.username,
         "display_name": user.display_name,
         "role_id": user.role_id,
         "role": role,
-        }, 200
+    }, 200
 
 # CREDITS
 # our authentication was inspired by the following article:
