@@ -114,6 +114,23 @@ def logout():
     return response
 
 
+# this is just a dummy endpoint to check if your JWT auth is working
+# it will return back the username associated with your JWT token
+@app.route('/identity')
+@jwt_required()
+def my_profile():
+    user = User.query.filter(User.username.ilike(get_jwt_identity())).first()
+    role = Role.query.filter(Role.id == user.role_id).first().name
+    if role:
+        role = role.name
+    return {
+        "username": user.username,
+        "display_name": user.display_name,
+        "role_id": user.role_id,
+        "role": role,
+    }, 200
+
+
 @app.after_request
 def refresh_expiring_jwts(response):
     try:
@@ -130,24 +147,6 @@ def refresh_expiring_jwts(response):
     except (RuntimeError, KeyError):
         # Case where there is not a valid JWT. Just return the original respone
         return response
-
-# this is just a dummy endpoint to check if your JWT auth is working
-# it will return back the username associated with your JWT token
-
-
-@app.route('/identity')
-@jwt_required()
-def my_profile():
-    user = User.query.filter(User.username.ilike(get_jwt_identity())).first()
-    role = Role.query.filter(Role.id == user.role_id).first().name
-    if role:
-        role = role.name
-    return {
-        "username": user.username,
-        "display_name": user.display_name,
-        "role_id": user.role_id,
-        "role": role,
-    }, 200
 
 # CREDITS
 # our authentication was inspired by the following article:
@@ -237,9 +236,9 @@ def new_post():
     return {"msg": "Post created successfully"}, 200
 
 
-@app.route('/post/<int:post_id>/reply', methods=['POST'])
+@app.route('/reply/<int:item_id>', methods=['POST'])
 @jwt_required()
-def create_reply(post_id):
+def create_reply(item_id):
     # get query params
     content = profanity.censor(request.json.get("content", None))
     parent_reply_id = request.json.get("parent_reply_id", None)
@@ -252,10 +251,10 @@ def create_reply(post_id):
     username = get_jwt_identity()
     user = User.query.filter_by(username=username).first()
     if not user:
-        return {"msg": "Error fetching user from JWT token"}, 401
+        return {"msg": "Error fetching user"}, 401
 
     # checking if the post exists
-    post = Post.query.filter_by(id=post_id).first()
+    post = Post.query.filter_by(id=item_id).first()
     if not post:
         return {"msg": "Post not found"}, 404
 
@@ -283,176 +282,130 @@ def create_reply(post_id):
     return {"msg": "Reply created successfully"}, 201
 
 
-@app.route('/reply/<int:reply_id>/update', methods=['POST'])
+@app.route('/delete/<item_type>/<int:item_id>', methods=['POST'])
 @jwt_required()
-def update_reply(reply_id):
-    # getting user
+def delete_item(item_type, item_id):
     username = get_jwt_identity()
     user = User.query.filter_by(username=username).first()
     if not user:
         return {"msg": "Error fetching user from JWT token"}, 401
 
-    # checking if the reply exists
-    reply = Reply.query.filter_by(id=reply_id).first()
-    if not reply:
-        return {"msg": "Reply not found"}, 404
+    # checking if the item exists
+    if item_type == 'post':
+        item = Post.query.filter_by(id=item_id).first()
+    elif item_type == 'reply':
+        item = Reply.query.filter_by(id=item_id).first()
+    else:
+        return {"msg": "Invalid item type"}, 400
 
-    # checking if the user is authorized to update the reply
-    if reply.username != username:
-        return {"msg": "Unauthorized to update this reply"}, 403
+    if not item:
+        return {"msg": "Item not found"}, 404
 
-    # get query params
-    content = profanity.censor(request.json.get("content", None))
-
-    # validate that params are sent in
-    if content is None:
-        return {"msg": "Content missing"}, 400
-
-    # update the reply object
-    reply.content = content
-    reply.edited = True
-    reply.edited_date = datetime.utcnow()
-    db.session.commit()
-
-    return {"msg": "Reply updated successfully"}, 200
-
-
-@app.route('/reply/<int:reply_id>/delete', methods=['POST'])
-@jwt_required()
-def delete_reply(reply_id):
-    # getting user
-    username = get_jwt_identity()
-    user = User.query.filter_by(username=username).first()
-    if not user:
-        return {"msg": "Error fetching user from JWT token"}, 401
-
-    # checking if the reply exists
-    reply = Reply.query.filter_by(id=reply_id).first()
-    if not reply:
-        return {"msg": "Reply not found"}, 404
-
-    # checking if the user is authorized to delete the reply
-    if reply.username != username:
+    # checking if the user is authorized to delete the item
+    if item_type == 'post' and item.author != user:
+        return {"msg": "Unauthorized to delete this post"}, 403
+    elif item_type == 'reply' and item.username != username:
         return {"msg": "Unauthorized to delete this reply"}, 403
 
-    # recursively delete all child replies
-    def delete_children(reply):
-        for child in reply.replies:
+    # recursively delete all child items
+    def delete_children(item):
+        for child in item.replies:
             delete_children(child)
             db.session.delete(child)
 
-    delete_children(reply)
+    delete_children(item)
 
-    # delete the reply object
-    db.session.delete(reply)
+    # delete the item object
+    db.session.delete(item)
     db.session.commit()
 
-    return {"msg": "Reply and all its children deleted successfully"}, 200
+    return {"msg": item_type.capitalize() + " deleted successfully"}, 200
 
 
-@app.route('/post/<post_id>/update', methods=["POST"])
+@app.route('/edit/<item_type>/<int:item_id>', methods=['POST'])
 @jwt_required()
-def update_post(post_id):
-    post = Post.query.filter_by(id=post_id).first()
-    if not post:
-        return {"msg": "Post not found"}, 404
-
+def update_item(item_type, item_id):
     username = get_jwt_identity()
     user = User.query.filter_by(username=username).first()
     if not user:
-        return {"msg": "Error fetching user from JWT token"}, 401
+        return {"msg": "Error fetching user"}, 401
 
-    if post.author != user:
-        return {"msg": "You do not have permission to modify this post"}, 401
+    # checking if the item is valid
+    if item_type == 'post':
+        item = Post.query.filter_by(id=item_id).first()
+    elif item_type == 'reply':
+        item = Reply.query.filter_by(id=item_id).first()
+    else:
+        return {"msg": "Invalid item type"}, 400
 
-    # get query params
-    title = profanity.censor(request.json.get("title", None))
-    content = profanity.censor(request.json.get("content", None))
+    if not item:
+        return {"msg": "Item not found"}, 404
+
+    # checking if the user is authorized to update the item
+    if item_type == 'post' and item.author != user:
+        return {"msg": "Unauthorized to update this post"}, 403
+    elif item_type == 'reply' and item.username != username:
+        return {"msg": "Unauthorized to update this reply"}, 403
 
     # validate that params are sent in
-    if title is None or content is None:
-        return {"msg": "Title or content missing"}, 400
+    if item_type == 'post':
+        title = profanity.censor(request.json.get("title", None))
 
-    # updating values of post
-    post.title = title
-    post.content = content
-    post.edited = True
-    post.edited_date = datetime.utcnow()
+        if title is None:
+            return {"msg": "Title missing"}, 400
+
+        item.title = title
+
+    content = profanity.censor(request.json.get("content", None))
+
+    if content is None:
+        return {"msg": "Content missing"}, 400
+
+    # update the item object
+    item.content = content
+    item.edited = True
+    item.edited_date = datetime.utcnow()
     db.session.commit()
 
-    return {"msg": "Post updated successfully"}, 200
+    return {"msg": item_type.capitalize() + " updated successfully"}, 200
 
 
-@app.route('/post/<post_id>/delete', methods=["POST"])
+@app.route('/like/<item_type>/<int:item_id>', methods=['GET'])
 @jwt_required()
-def delete_post(post_id):
-    post = Post.query.filter_by(id=post_id).first()
-    if not post:
-        return {"msg": "Post not found"}, 404
-
+def like_item(item_type, item_id):
     username = get_jwt_identity()
-    user = User.query.filter_by(username=username).first()
-    if not user:
-        return {"msg": "Error fetching user from JWT token"}, 401
+    if not username:
+        return {"msg": "Error fetching user"}, 401
 
-    if post.author != user:
-        return {"msg": "You do not have permission to modify this post"}, 401
+    # checking if the item exists
+    if item_type == 'post':
+        item = Post.query.get_or_404(item_id)
+        channel_id = item.channel_id
+        like_query = Like.query.filter_by(username=username, post_id=item_id)
+    elif item_type == 'reply':
+        item = Reply.query.get_or_404(item_id)
+        post = Post.query.get(item.post_id)
+        channel_id = post.channel_id
+        like_query = Like.query.filter_by(username=username, reply_id=item_id)
+    else:
+        return {"msg": "Invalid item type"}, 400
 
-    # deleting replies and post itself
-    for reply in post.replies:
-        db.session.delete(reply)
-    db.session.delete(post)
-    db.session.commit()
-
-    return {"msg": f"successfully deleted post {post_id}"}, 200
-
-
-@app.route('/post/<int:post_id>/like', methods=['GET'])
-@jwt_required()
-def like_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    current_user_username = get_jwt_identity()
-    like = Like.query.filter_by(
-        username=current_user_username, post_id=post_id).first()
-    channel_id = post.channel_id
     channel = Channel.query.get(channel_id)
     username = get_jwt_identity()
 
-    if like:
-        # User has already liked this post, so delete the like
-        db.session.delete(like)
-        db.session.commit()
-    else:
-        # User has not yet liked this post, so add a new like
-        new_like = Like(username=current_user_username, post_id=post_id)
-        db.session.add(new_like)
-        db.session.commit()
-
-    posts = [post.to_dict(username=username) for post in channel.posts]
-    return posts, 200
-
-
-@app.route('/reply/<int:reply_id>/like', methods=['GET'])
-@jwt_required()
-def like_reply(reply_id):
-    reply = Reply.query.get_or_404(reply_id)
-    post = Post.query.get(reply.post_id)
-    current_user_username = get_jwt_identity()
-    like = Like.query.filter_by(
-        username=current_user_username, reply_id=reply_id).first()
-    channel_id = post.channel_id
-    channel = Channel.query.get(channel_id)
-    username = get_jwt_identity()
+    like = like_query.first()
 
     if like:
-        # User has already liked this reply, so delete the like
+        # User has already liked this item, so remove the like
         db.session.delete(like)
-        db.session.commit()
     else:
-        # User has not yet liked this reply, so add a new like
-        new_like = Like(username=current_user_username, reply_id=reply_id)
+        # User has not yet liked this item, so add a new like
+        if item_type == 'post':
+            new_like = Like(username=username, post_id=item_id)
+        elif item_type == 'reply':
+            new_like = Like(username=username, reply_id=item_id)
         db.session.add(new_like)
-        db.session.commit()
+    db.session.commit()
 
     posts = [post.to_dict(username=username) for post in channel.posts]
     return posts, 200
