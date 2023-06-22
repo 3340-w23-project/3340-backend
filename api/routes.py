@@ -311,7 +311,7 @@ def update_reply(reply_id):
     # update the reply object
     reply.content = content
     reply.edited = True
-    reply.edited_date = datetime.now()
+    reply.edited_date = datetime.utcnow()
     db.session.commit()
 
     return {"msg": "Reply updated successfully"}, 200
@@ -377,7 +377,7 @@ def update_post(post_id):
     post.title = title
     post.content = content
     post.edited = True
-    post.edited_date = datetime.now()
+    post.edited_date = datetime.utcnow()
     db.session.commit()
 
     return {"msg": "Post updated successfully"}, 200
