@@ -1,12 +1,13 @@
 import os
 import sys
 from api import app, db
-from api.models import Category, Channel
+from api.models import Category, Channel, Role
 from dotenv import load_dotenv
 from flask_migrate import Migrate
 load_dotenv()
 
 migrate = Migrate(app, db)
+
 
 def setup_db():
     import json
@@ -34,6 +35,18 @@ def setup_db():
             print(
                 "categories table is not empty, run with the \"update\" argument to update the database")
             print("skipping categories table population ...")
+        if Role.query.count() == 0:
+            print("populating roles table ...")
+            roles = [
+                Role(id=1, name="member"),
+                Role(id=100, name="admin")
+            ]
+            db.session.add_all(roles)
+            db.session.commit()
+            print("done populating roles table!")
+        else:
+            print("roles table is not empty.")
+            print("skipping roles table population ...")
         print("done setting up database!")
 
 

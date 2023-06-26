@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, unset_jwt_cookies, jwt_required
 from api import app, db
-from api.models import User, Post, Channel, Category, Reply, Like, Role
+from api.models import User, Post, Channel, Category, Reply, Like, Role, Dislike
 from better_profanity import profanity
 profanity.load_censor_words()
 
@@ -61,7 +61,7 @@ def signup():
             return {"msg": f"User <{lc_username}> not allowed to sign up"}, 403
 
     # creating a new user and adding it to the users table
-    user = User(username=lc_username, display_name=username, role_id=0,
+    user = User(username=lc_username, display_name=username,
                 password_hash=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
     db.session.add(user)
     db.session.commit()
@@ -382,11 +382,15 @@ def like_item(item_type, item_id):
         item = Post.query.get_or_404(item_id)
         channel_id = item.channel_id
         like_query = Like.query.filter_by(username=username, post_id=item_id)
+        dislike_query = Dislike.query.filter_by(
+            username=username, post_id=item_id)
     elif item_type == 'reply':
         item = Reply.query.get_or_404(item_id)
         post = Post.query.get(item.post_id)
         channel_id = post.channel_id
         like_query = Like.query.filter_by(username=username, reply_id=item_id)
+        dislike_query = Dislike.query.filter_by(
+            username=username, reply_id=item_id)
     else:
         return {"msg": "Invalid item type"}, 400
 
@@ -399,12 +403,65 @@ def like_item(item_type, item_id):
         # User has already liked this item, so remove the like
         db.session.delete(like)
     else:
-        # User has not yet liked this item, so add a new like
+        dislike = dislike_query.first()
+        if dislike:
+            # User has disliked this item, so remove the dislike
+            db.session.delete(dislike)
+        # add a new like
         if item_type == 'post':
             new_like = Like(username=username, post_id=item_id)
         elif item_type == 'reply':
             new_like = Like(username=username, reply_id=item_id)
         db.session.add(new_like)
+    db.session.commit()
+
+    posts = [post.to_dict(username=username) for post in channel.posts]
+    return posts, 200
+
+
+@app.route('/dislike/<item_type>/<int:item_id>', methods=['GET'])
+@jwt_required()
+def dislike_item(item_type, item_id):
+    username = get_jwt_identity()
+    if not username:
+        return {"msg": "Error fetching user"}, 401
+
+    # checking if the item exists
+    if item_type == 'post':
+        item = Post.query.get_or_404(item_id)
+        channel_id = item.channel_id
+        like_query = Like.query.filter_by(username=username, post_id=item_id)
+        dislike_query = Dislike.query.filter_by(
+            username=username, post_id=item_id)
+    elif item_type == 'reply':
+        item = Reply.query.get_or_404(item_id)
+        post = Post.query.get(item.post_id)
+        channel_id = post.channel_id
+        like_query = Like.query.filter_by(username=username, reply_id=item_id)
+        dislike_query = Dislike.query.filter_by(
+            username=username, reply_id=item_id)
+    else:
+        return {"msg": "Invalid item type"}, 400
+
+    channel = Channel.query.get(channel_id)
+    username = get_jwt_identity()
+
+    dislike = dislike_query.first()
+
+    if dislike:
+        # User has already disliked this item, so remove the dislike
+        db.session.delete(dislike)
+    else:
+        like = like_query.first()
+        if like:
+            # User has liked this item, so remove the like
+            db.session.delete(like)
+        # add a new dislike
+        if item_type == 'post':
+            new_dislike = Dislike(username=username, post_id=item_id)
+        elif item_type == 'reply':
+            new_dislike = Dislike(username=username, reply_id=item_id)
+        db.session.add(new_dislike)
     db.session.commit()
 
     posts = [post.to_dict(username=username) for post in channel.posts]
