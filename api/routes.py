@@ -32,21 +32,21 @@ def signup():
 
     # validate that params are sent in
     if username is None or password is None:
-        return {"msg": "Username or password missing"}, 400
+        return {"msg": "Username or password missing."}, 400
 
     if len(username) < 3 or len(username) > 20:
-        return {"msg": "Username must be between 3 and 20 characters"}, 400
+        return {"msg": "Username must be between 3 and 20 characters."}, 400
 
     if len(password) < 4 or len(password) > 30:
-        return {"msg": "Password must be between 4 and 30 characters"}, 400
+        return {"msg": "Password must be between 4 and 30 characters."}, 400
 
     # check for illegal characters
     if not re.match(r"^[a-zA-Z0-9_-]+$", username):
-        return {"msg": "Username contains illegal characters"}, 400
+        return {"msg": "Username contains illegal characters."}, 400
 
     # check for profanity
     if (profanity.contains_profanity(username)):
-        return {"msg": "Username contains profanity"}, 400
+        return {"msg": "Please choose a different username."}, 400
 
     # convert username to lowercase
     lc_username = username.lower()
@@ -54,32 +54,47 @@ def signup():
     # check if user already exists (case insensitive)
     queried_user = User.query.filter(User.username.ilike(lc_username)).first()
     if queried_user:
-        return {"msg": f"User <{username}> already exists"}, 409
+        return {"msg": "User already exists."}, 409
 
+    # check if restricted mode is enabled and if user is allowed to sign up
     if restricted_mode:
         if lc_username not in allowed_usernames:
-            return {"msg": f"User <{lc_username}> not allowed to sign up"}, 403
+            return {"msg": "Signup is currently restricted, please try again later."}, 403
 
     # creating a new user and adding it to the users table
-    user = User(username=lc_username, display_name=username,
+    user = User(username=lc_username, display_name=username, role_id=1,
                 password_hash=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
     db.session.add(user)
     db.session.commit()
-    return {"msg": f"User <{username}> created successfully"}, 201
+
+    role = Role.query.filter(Role.id == user.role_id).first()
+    if role:
+        role = role.name
+
+    # login user
+    access_token = create_access_token(identity=lc_username)
+
+    return {
+        "username": lc_username,
+        "display_name": username,
+        "role_id": user.role_id,
+        "role": role,
+        "access_token": access_token
+    }, 201
 
 
 @app.route('/signin', methods=["POST"])
-def login():
+def signin():
     # get query params
     username = request.json.get("username", None)
     password = request.json.get("password", None)
 
     # validate that params are sent in
     if username is None or password is None:
-        return {"msg": "username or password missing"}, 400
+        return {"msg": "Username or password missing"}, 400
 
     if len(username) < 3 or len(username) > 20:
-        return {"msg": "invalid username"}, 400
+        return {"msg": "Username must be between 3 and 20 characters."}, 400
 
     # convert username to lowercase
     lc_username = username.lower()
@@ -87,21 +102,25 @@ def login():
     # get user by username (case insensitive)
     user = User.query.filter(User.username.ilike(lc_username)).first()
 
-    # get role
-    role = Role.query.filter(Role.id == user.role_id).first()
-    if role:
-        role = role.name
-
     # if user doesn't exist or the password is incorrect, we return unauthorized
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         return {"msg": "Incorrect username or password"}, 401
+
+    # get role
+    role_id = user.role_id
+    if role_id == None:
+        role_id = 1
+
+    role = Role.query.filter(Role.id == role_id).first()
+    if role:
+        role = role.name
 
     # creating jwt token and returning it
     access_token = create_access_token(identity=lc_username)
     return {
         "username": lc_username,
         "display_name": user.display_name,
-        "role_id": user.role_id,
+        "role_id": role_id,
         "role": role,
         "access_token": access_token
     }, 200
