@@ -150,22 +150,22 @@ def my_profile():
     }, 200
 
 
-@app.after_request
-def refresh_expiring_jwts(response):
-    try:
-        exp_timestamp = get_jwt()["exp"]
-        now = datetime.now(timezone.utc)
-        target_timestamp = datetime.timestamp(now + timedelta(hours=6))
-        if target_timestamp > exp_timestamp:
-            access_token = create_access_token(identity=get_jwt_identity())
-            data = response.get_json()
-            if type(data) is dict:
-                data["access_token"] = access_token
-                response.data = json.dumps(data)
-        return response
-    except (RuntimeError, KeyError):
-        # Case where there is not a valid JWT. Just return the original respone
-        return response
+# @app.after_request
+# def refresh_expiring_jwts(response):
+#     try:
+#         exp_timestamp = get_jwt()["exp"]
+#         now = datetime.now(timezone.utc)
+#         target_timestamp = datetime.timestamp(now + timedelta(hours=6))
+#         if target_timestamp > exp_timestamp:
+#             access_token = create_access_token(identity=get_jwt_identity())
+#             data = response.get_json()
+#             if type(data) is dict:
+#                 data["access_token"] = access_token
+#                 response.data = json.dumps(data)
+#         return response
+#     except (RuntimeError, KeyError):
+#         # Case where there is not a valid JWT. Just return the original respone
+#         return response
 
 # CREDITS
 # our authentication was inspired by the following article:
@@ -389,7 +389,7 @@ def update_item(item_type, item_id):
     return {"msg": item_type.capitalize() + " updated successfully"}, 200
 
 
-@app.route('/like/<item_type>/<int:item_id>', methods=['GET'])
+@app.route('/like/<item_type>/<int:item_id>', methods=['POST'])
 @jwt_required()
 def like_item(item_type, item_id):
     username = get_jwt_identity()
@@ -398,22 +398,16 @@ def like_item(item_type, item_id):
 
     # checking if the item exists
     if item_type == 'post':
-        item = Post.query.get_or_404(item_id)
-        channel_id = item.channel_id
         like_query = Like.query.filter_by(username=username, post_id=item_id)
         dislike_query = Dislike.query.filter_by(
             username=username, post_id=item_id)
     elif item_type == 'reply':
-        item = Reply.query.get_or_404(item_id)
-        post = Post.query.get(item.post_id)
-        channel_id = post.channel_id
         like_query = Like.query.filter_by(username=username, reply_id=item_id)
         dislike_query = Dislike.query.filter_by(
             username=username, reply_id=item_id)
     else:
         return {"msg": "Invalid item type"}, 400
 
-    channel = Channel.query.get(channel_id)
     username = get_jwt_identity()
 
     like = like_query.first()
@@ -434,11 +428,10 @@ def like_item(item_type, item_id):
         db.session.add(new_like)
     db.session.commit()
 
-    posts = [post.to_dict(username=username) for post in channel.posts]
-    return posts, 200
+    return {}, 200
 
 
-@app.route('/dislike/<item_type>/<int:item_id>', methods=['GET'])
+@app.route('/dislike/<item_type>/<int:item_id>', methods=['POST'])
 @jwt_required()
 def dislike_item(item_type, item_id):
     username = get_jwt_identity()
@@ -447,22 +440,16 @@ def dislike_item(item_type, item_id):
 
     # checking if the item exists
     if item_type == 'post':
-        item = Post.query.get_or_404(item_id)
-        channel_id = item.channel_id
         like_query = Like.query.filter_by(username=username, post_id=item_id)
         dislike_query = Dislike.query.filter_by(
             username=username, post_id=item_id)
     elif item_type == 'reply':
-        item = Reply.query.get_or_404(item_id)
-        post = Post.query.get(item.post_id)
-        channel_id = post.channel_id
         like_query = Like.query.filter_by(username=username, reply_id=item_id)
         dislike_query = Dislike.query.filter_by(
             username=username, reply_id=item_id)
     else:
         return {"msg": "Invalid item type"}, 400
 
-    channel = Channel.query.get(channel_id)
     username = get_jwt_identity()
 
     dislike = dislike_query.first()
@@ -483,5 +470,4 @@ def dislike_item(item_type, item_id):
         db.session.add(new_dislike)
     db.session.commit()
 
-    posts = [post.to_dict(username=username) for post in channel.posts]
-    return posts, 200
+    return {}, 200
